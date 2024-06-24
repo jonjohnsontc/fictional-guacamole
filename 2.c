@@ -37,7 +37,7 @@ float min(float a, float b) {
 }
 
 static int cmp(const void *ptr_a, const void *ptr_b) {
-  return strcmp(((const node *)ptr_a)->name, ((const node *)ptr_b)->name);
+  return strcmp((*(const node **)ptr_a)->name, (*(const node **)ptr_b)->name);
 }
 
 node *new_node(char *name, float val) {
@@ -87,7 +87,7 @@ int main(void) {
     sscanf(buf, "%[^;];%f", name, &temp);
     add_to_table(temps, name, temp, &cur);
   }
-  qsort(temps, (size_t)cur, sizeof(char *), cmp);
+  qsort(temps, (size_t)cur, sizeof(node *), cmp);
   for (i = 0; i < cur; i++) {
     printf("%s=%.1f/%.1f/%.1f%s", temps[i]->name, temps[i]->min,
            temps[i]->sum / temps[i]->count, temps[i]->max, i < cur ? ", " : "");
