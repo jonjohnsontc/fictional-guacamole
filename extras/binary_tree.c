@@ -12,7 +12,6 @@ struct tnode {
   int count;
   struct tnode *left;
   struct tnode *right;
-  struct tnode *parent;
 };
 
 struct tnode *create_node(int val) {
@@ -41,6 +40,15 @@ struct tnode *insert_node(struct tnode *head, struct tnode *node) {
   return head;
 }
 
+struct tnode *find_node(struct tnode *head, int val) {
+  if (head == NULL || head->val == val)
+    return head;
+  if (val < head->val)
+    return find_node(head->left, val);
+  else
+    return find_node(head->right, val);
+}
+
 int main(void) {
   struct tnode *root = create_node(9);
   struct tnode *n = create_node(19);
@@ -59,4 +67,12 @@ int main(void) {
   assert(root->right->val == 19);
   assert(root->right->right->val == 22);
   assert(root->left->val == 6);
+
+  a = find_node(root, 1);
+  assert(a->val == 1);
+
+  free(a);
+  free(v);
+  free(n);
+  free(root);
 }
