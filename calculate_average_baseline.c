@@ -1,5 +1,8 @@
 /*
-    My attempt at making a baseline calculation script in C
+    My first attempt at making a baseline calculation script in C
+    This runs SLOW, it set my desktop PC to a crawl over the course of 20 mins 
+    (i think, i didn't finish running it)
+
 */
 #include <assert.h>
 #include <stdio.h>
