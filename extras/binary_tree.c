@@ -2,7 +2,7 @@
     After realizing I was having some trouble coming up with a way
     to use a binary tree effectively when iterating through rows in
     the 1brc, I decided to try implementing a simple binary tree to
-   re-familiarize myself
+    re-familiarize myself
 */
 #include <assert.h>
 #include <stdio.h>
@@ -28,6 +28,7 @@ struct tnode *create_node(int val) {
   return new;
 }
 
+// O(logn) node insertion
 struct tnode *insert_node(struct tnode *head, struct tnode *node) {
   if (head == NULL) {
     head = node;
@@ -40,6 +41,7 @@ struct tnode *insert_node(struct tnode *head, struct tnode *node) {
   return head;
 }
 
+// O(logn) search for node
 struct tnode *find_node(struct tnode *head, int val) {
   if (head == NULL || head->val == val)
     return head;
@@ -49,6 +51,7 @@ struct tnode *find_node(struct tnode *head, int val) {
     return find_node(head->right, val);
 }
 
+// Prints tree in ascending order
 void print_node(struct tnode *head) {
   if (head != NULL) {
     print_node(head->left);
