@@ -1,0 +1,4 @@
+/* 
+    A take on the baseline approach by using a binary tree instead 
+    of an array
+*/
