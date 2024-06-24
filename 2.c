@@ -82,15 +82,17 @@ int main(void) {
   table temps = {NULL};
   float temp;
   int cur = 0, i;
-  FILE *file = fopen("./measurements_1m.txt", "r");
+  FILE *file = fopen("./measurements.txt", "r");
   while (fgets(buf, sizeof(buf), file) != NULL) {
     sscanf(buf, "%[^;];%f", name, &temp);
     add_to_table(temps, name, temp, &cur);
   }
   qsort(temps, (size_t)cur, sizeof(node *), cmp);
+  printf("{");
   for (i = 0; i < cur; i++) {
     printf("%s=%.1f/%.1f/%.1f%s", temps[i]->name, temps[i]->min,
-           temps[i]->sum / temps[i]->count, temps[i]->max, i < cur ? ", " : "");
+           temps[i]->sum / temps[i]->count, temps[i]->max, i < cur - 1 ? ", " : "");
   }
+  printf("}\n");
   return 0;
 }

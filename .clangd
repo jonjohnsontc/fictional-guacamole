@@ -1,2 +1,2 @@
 CompileFlags:
-    Add: [-Wall, -Werror, -Wformat, -Wextra, -pedantic, -fsantize=undefined]
+    Add: [-Wall, -Werror, -Wformat, -Wextra, -pedantic, -fsanitize=undefined]
