@@ -49,6 +49,14 @@ struct tnode *find_node(struct tnode *head, int val) {
     return find_node(head->right, val);
 }
 
+void print_node(struct tnode *head) {
+  if (head != NULL) {
+    print_node(head->left);
+    printf("Val: %d\n", head->val);
+    print_node(head->right);
+  }
+}
+
 int main(void) {
   struct tnode *root = create_node(9);
   struct tnode *n = create_node(19);
@@ -70,6 +78,8 @@ int main(void) {
 
   a = find_node(root, 1);
   assert(a->val == 1);
+
+  print_node(root);
 
   free(a);
   free(v);
