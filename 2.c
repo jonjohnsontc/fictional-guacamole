@@ -64,6 +64,16 @@ int in_table(table t, int size, char *name) {
   return -1;
 }
 
+int in_array(node array[], int size, char *name) {
+  int i;
+    for (i = 0; i < size; i++) {
+    if (strcmp(array[i].name, name) == 0) {
+      return i;
+    }
+  }
+  return -1;
+}
+
 void add_to_table(table t, char *name, float val, int *idx) {
   int i;
   if ((i = in_table(t, *idx, name)) != -1) {
@@ -80,16 +90,25 @@ int main(void) {
   char buf[BUF_SIZE];
   char name[WORD_SIZE];
   table temps = {NULL};
+  node array[NODE_MAX];
   float temp;
   int cur = 0, i;
-  unsigned iterations = 0;
-  FILE *file = fopen("./measurements.txt", "r");
+  FILE *file = fopen("./measurements_1m.txt", "r");
   while (fgets(buf, sizeof(buf), file) != NULL) {
     sscanf(buf, "%[^;];%f", name, &temp);
     add_to_table(temps, name, temp, &cur);
-    iterations++;
-    if (iterations % 1000000 == 0) 
-      printf("iterations: %d\n", iterations);
+    int i;
+    if ((i = in_array(array, cur, name))) {
+      array[i].count++;
+      array[i].max = max(array[i].max, temp);
+      array[i].min = min(array[i].min, temp);
+      array[i].sum += temp;
+    } else {
+      array[i].count = 0;
+      array[i].max = temp;
+      array[i].min = temp;
+      array[i].sum = temp;
+    }
   }
   qsort(temps, (size_t)cur, sizeof(node *), cmp);
   printf("{");
