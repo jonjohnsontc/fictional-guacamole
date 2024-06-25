@@ -36,7 +36,7 @@ float min(float a, float b) {
 }
 
 static int cmp(const void *ptr_a, const void *ptr_b) {
-  return strcmp((*(const node **)ptr_a)->name, (*(const node **)ptr_b)->name);
+  return strcmp(((const node *)ptr_a)->name, ((const node *)ptr_b)->name);
 }
 
 int in_array(node array[], int size, char *name) {
@@ -59,20 +59,21 @@ int main(void) {
   while (fgets(buf, sizeof(buf), file) != NULL) {
     sscanf(buf, "%[^;];%f", name, &temp);
     int i;
-    if ((i = in_array(array, cur, name))) {
-      strcpy(array[i].name, name);
+    if ((i = in_array(array, cur, name)) != -1) {
       array[i].count++;
       array[i].max = max(array[i].max, temp);
       array[i].min = min(array[i].min, temp);
       array[i].sum += temp;
     } else {
-      array[i].count = 0;
-      array[i].max = temp;
-      array[i].min = temp;
-      array[i].sum = temp;
+      strcpy(array[cur].name, name);
+      array[cur].count = 0;
+      array[cur].max = temp;
+      array[cur].min = temp;
+      array[cur].sum = temp;
+      cur++;
     }
   }
-  qsort(array, (size_t)cur, sizeof(array), cmp);
+  qsort(array, (size_t)cur, sizeof(*array), cmp);
   printf("{");
   for (i = 0; i < cur; i++) {
     printf("%s=%.1f/%.1f/%.1f%s", array[i].name, array[i].min,
