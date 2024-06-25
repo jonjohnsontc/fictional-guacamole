@@ -20,7 +20,6 @@ typedef struct node {
   float max;
   float sum;
 } node;
-typedef node *table[NODE_MAX];
 
 float max(float a, float b) {
   if (a > b)
@@ -40,30 +39,6 @@ static int cmp(const void *ptr_a, const void *ptr_b) {
   return strcmp((*(const node **)ptr_a)->name, (*(const node **)ptr_b)->name);
 }
 
-node *new_node(char *name, float val) {
-  node *n = malloc(sizeof(node));
-  if (n == NULL) {
-    fprintf(stderr, "malloc error\n");
-    exit(1);
-  }
-  strcpy(n->name, name);
-  n->max = val;
-  n->min = val;
-  n->sum = val;
-  n->count = 1;
-  return n;
-}
-
-int in_table(table t, int size, char *name) {
-  int i;
-  for (i = 0; i < size; i++) {
-    if (strcmp(t[i]->name, name) == 0) {
-      return i;
-    }
-  }
-  return -1;
-}
-
 int in_array(node array[], int size, char *name) {
   int i;
     for (i = 0; i < size; i++) {
@@ -74,31 +49,18 @@ int in_array(node array[], int size, char *name) {
   return -1;
 }
 
-void add_to_table(table t, char *name, float val, int *idx) {
-  int i;
-  if ((i = in_table(t, *idx, name)) != -1) {
-    t[i]->count++;
-    t[i]->max = max(t[i]->max, val);
-    t[i]->min = min(t[i]->min, val);
-    t[i]->sum += val;
-  } else {
-    t[(*idx)++] = new_node(name, val);
-  }
-}
-
 int main(void) {
   char buf[BUF_SIZE];
   char name[WORD_SIZE];
-  table temps = {NULL};
   node array[NODE_MAX];
   float temp;
   int cur = 0, i;
   FILE *file = fopen("./measurements_1m.txt", "r");
   while (fgets(buf, sizeof(buf), file) != NULL) {
     sscanf(buf, "%[^;];%f", name, &temp);
-    add_to_table(temps, name, temp, &cur);
     int i;
     if ((i = in_array(array, cur, name))) {
+      strcpy(array[i].name, name);
       array[i].count++;
       array[i].max = max(array[i].max, temp);
       array[i].min = min(array[i].min, temp);
@@ -110,11 +72,11 @@ int main(void) {
       array[i].sum = temp;
     }
   }
-  qsort(temps, (size_t)cur, sizeof(node *), cmp);
+  qsort(array, (size_t)cur, sizeof(array), cmp);
   printf("{");
   for (i = 0; i < cur; i++) {
-    printf("%s=%.1f/%.1f/%.1f%s", temps[i]->name, temps[i]->min,
-           temps[i]->sum / temps[i]->count, temps[i]->max, i < cur - 1 ? ", " : "");
+    printf("%s=%.1f/%.1f/%.1f%s", array[i].name, array[i].min,
+           array[i].sum / array[i].count, array[i].max, i < cur - 1 ? ", " : "");
   }
   printf("}\n");
   return 0;
