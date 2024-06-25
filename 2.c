@@ -82,10 +82,14 @@ int main(void) {
   table temps = {NULL};
   float temp;
   int cur = 0, i;
+  unsigned iterations = 0;
   FILE *file = fopen("./measurements.txt", "r");
   while (fgets(buf, sizeof(buf), file) != NULL) {
     sscanf(buf, "%[^;];%f", name, &temp);
     add_to_table(temps, name, temp, &cur);
+    iterations++;
+    if (iterations % 1000000 == 0) 
+      printf("iterations: %d\n", iterations);
   }
   qsort(temps, (size_t)cur, sizeof(node *), cmp);
   printf("{");
