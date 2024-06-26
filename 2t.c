@@ -54,7 +54,7 @@ struct node *insert_node(struct node *head, struct node *node) {
   if (head == NULL) {
     return node;
   }
-  if (strcmp(head->name, node->name) < 0) {
+  if (strcmp(head->name, node->name) > 0) {
     head->left = insert_node(head->left, node);
   } else {
     head->right = insert_node(head->right, node);
@@ -65,12 +65,14 @@ struct node *insert_node(struct node *head, struct node *node) {
 // O(logn) search for node
 struct node *find_node(struct node *head, char *name) {
   int res;
-  if (head == NULL || (res = strcmp(head->name, name)) == 0)
+  if (head == NULL)
+    return head;
+  if ((res = strcmp(head->name, name)) == 0)
     return head;
   if (res < 0)
-    return find_node(head->left, name);
-  else
     return find_node(head->right, name);
+  else
+    return find_node(head->left, name);
 }
 
 // Prints tree in ascending order
@@ -100,17 +102,17 @@ float min(float a, float b) {
 int main(void) {
   char buf[BUF_SIZE];
   char name[WORD_SIZE];
-  node *r = NULL, *n = NULL;
+  node *r = NULL, *n = NULL, *f = NULL;
   float temp;
   unsigned cur = 0;
   FILE *file = fopen("./measurements_1m.txt", "r");
   while (fgets(buf, sizeof(buf), file) != NULL) {
     sscanf(buf, "%[^;];%f", name, &temp);
-    if (find_node(r, name) != NULL) {
-      r->count++;
-      r->max = max(r->max, temp);
-      r->min = min(r->min, temp);
-      r->sum += temp;
+    if ((f = find_node(r, name)) != NULL) {
+      f->count++;
+      f->max = max(f->max, temp);
+      f->min = min(f->min, temp);
+      f->sum += temp;
     } else {
       n = create_node(name, temp);
       r = insert_node(r, n);
