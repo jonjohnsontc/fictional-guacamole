@@ -14,11 +14,19 @@ The function will return radix sorted integers to stdout
 
 int main(void) {
   int i, n;
-  int nums[MAX_NUMS];
-  int offsets[MAX_NUMS];
+  int counters[MAX_NUMS]; // locations in array give us the count of those idx
+                          // in input
+  int offsets[MAX_NUMS];  // list of index locations for numbers in input
 
   scanf("%d", &n);
   for (i = 0; i < n; i++) {
-    scanf("%d", &nums[i]);
+    unsigned char c;
+    scanf("%s", &c);
+    counters[c]++;
+  }
+
+  // may assumption is that this array should be sparse
+
+  for (i = 0; i < 256; i++) {
   }
 }
