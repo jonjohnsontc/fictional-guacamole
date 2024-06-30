@@ -7,11 +7,9 @@
 #include <string.h>
 
 int main(void) {
-  int SortedBuffer[256];
   unsigned char InputValues[] = {54, 18, 3, 128, 2};
   unsigned char DestinationBuffer[5];
   int i, NbItems = 5;
-  memset(SortedBuffer, -1, 256 * sizeof(int));
 
   int Counters[256];
   memset(Counters, 0, 256 * sizeof(int));
