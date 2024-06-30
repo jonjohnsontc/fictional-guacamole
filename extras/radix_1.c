@@ -19,6 +19,7 @@ The function will return radix sorted integers to stdout
 int main(void) {
   int i, n, pass;
   int input[MAX_INPUT];
+  int destination[MAX_INPUT];
   int counters[BUF_SIZE]; // locations in array give us the count of those idx
                           // in input
   int offsets[BUF_SIZE];  // list of index locations for numbers in input
@@ -38,14 +39,28 @@ int main(void) {
   // main sorting loop; designed to run for however many bytes the largest
   // item is
   for (pass = 0; pass < NUM_DIGITS; pass++) {
+    // grab pass numbered byte in input
+    /*
+      At each pass, what are my assumptions?
+        - first pass:
+          -counters are at all zeroes
+          -offsets are at garbage values
+        - second pass:
+          -counters are at valid values (1s) for all of the numbers in the
+            input array, because they're all one byte max
+        - third pass:
+          - not sure, maybe counters + offset are all 0's?
+    */
+    offsets[0] = 0;
     for (i = 0; i < n; i++) {
-      // grab pass numbered byte in input
       unsigned char radix = (input[i] >> (pass << 3)) & 0x7FF;
       counters[radix]++;
+      if (i >= 1)
+        offsets[i] = offsets[i - 1] + counters[i - 1];
     }
-  }
-  offsets[0] = 0;
-  for (i = 1; i < BUF_SIZE; i++) {
-    offsets[i] = offsets[i - 1] + counters[i - 1];
+    for (i = 0; i < n; i++) {
+      unsigned char radix = (input[i] >> (pass << 3)) & 0x7FF;
+      destination[offsets[radix]++] = radix;
+    }
   }
 }
