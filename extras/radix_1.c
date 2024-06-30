@@ -10,23 +10,27 @@ The function will return radix sorted integers to stdout
 
 */
 #include <stdio.h>
-#define MAX_NUMS 655536
+#include <string.h>
+#define BUF_SIZE 256
 
 int main(void) {
   int i, n;
-  int counters[MAX_NUMS]; // locations in array give us the count of those idx
+  int counters[BUF_SIZE]; // locations in array give us the count of those idx
                           // in input
-  int offsets[MAX_NUMS];  // list of index locations for numbers in input
-
+  int offsets[BUF_SIZE];  // list of index locations for numbers in input
   scanf("%d", &n);
+  // I should be able to store the initial counters values in offsets (or
+  // vice-versa) so I can just use one array (outside of the additional return
+  // array)
+  memset(counters, 0, 256 * sizeof(int));
   for (i = 0; i < n; i++) {
     unsigned char c;
     scanf("%s", &c);
     counters[c]++;
   }
-
   // may assumption is that this array should be sparse
-
-  for (i = 0; i < 256; i++) {
+  offsets[0] = 0;
+  for (i = 1; i < BUF_SIZE; i++) {
+    offsets[i] = offsets[i - 1] + counters[i - 1];
   }
 }
