@@ -24,13 +24,17 @@ int max(int a, int b) {
   return b;
 }
 
+void print_array(int arr[], int length) {
+  for (int i = 0; i < length; i++)
+    printf("%d ", arr[i]);
+  printf("\n");
+}
+
 int main(void) {
   int i, n, pass, num_passes, max_num = 0;
   int input[MAX_INPUT];
   int destination[MAX_INPUT];
-  char counters[BUF_SIZE]; // locations in array give us the count of those idx
-                           // in input
-  char offsets[BUF_SIZE];  // list of index locations for numbers in input
+  char counters[BUF_SIZE]; // count of bytes based on their int identity
   scanf("%d", &n);
   if (n > MAX_INPUT) {
     fprintf(stderr, "input too large to process\n");
@@ -40,19 +44,20 @@ int main(void) {
     scanf("%d", &input[i]);
     max_num = max(max_num, input[i]);
   }
+  printf("Input array:\n");
+  print_array(input, n);
 
   // the number of passes necessary will be based on the item with the largest
   // number of bytes
   num_passes = log((double)max_num) / log((double)BUF_SIZE) + 1;
-  printf("Number of passes necessary %d\n", num_passes);
   // I should be able to store the initial counters values in offsets (or
   // vice-versa) so I can just use one array (outside of the additional return
   // array)
-  memset(counters, 0, 256 * sizeof(char));
 
   // main sorting loop; designed to run for however many bytes the largest
   // item is
   for (pass = 0; pass < num_passes; pass++) {
+    memset(counters, 0, 256 * sizeof(char));
     // grab pass numbered byte in input
     /*
       At each pass, what are my assumptions?
@@ -65,22 +70,20 @@ int main(void) {
         - third pass:
           - not sure, maybe counters + offset are all 0's?
     */
-    offsets[0] = 0;
     for (i = 0; i < n; i++) {
       unsigned char radix = (input[i] >> (pass << 3)) & 0x7FF;
       counters[radix]++;
     }
     for (i = 1; i < BUF_SIZE; i++)
-      offsets[i] = offsets[i - 1] + counters[i - 1];
-    for (i = 0; i < n; i++) {
+      counters[i] += counters[i - 1];
+    for (i = n - 1; i >= 0; i--) {
       unsigned char radix = (input[i] >> (pass << 3)) & 0x7FF;
-      destination[(int)offsets[radix]++] = input[i];
+      destination[(int)counters[radix] - 1] = input[i];
+      counters[radix] -= 1;
     }
-    printf("After pass %d, destination looks like:\n", pass);
     for (i = 0; i < n; i++)
-      if (i + 1 < n)
-        printf("%d, ", destination[i]);
-      else
-        printf("%d\n", destination[i]);
+      input[i] = destination[i];
   }
+  printf("After sort\n");
+  print_array(input, n);
 }
