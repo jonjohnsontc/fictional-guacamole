@@ -80,7 +80,7 @@ void print_node(struct node *head, unsigned *remaining) {
   if (head != NULL) {
     print_node(head->left, &(*remaining--));
     printf("%s=%.1f/%.1f/%.1f%s", head->name, head->min,
-           head->sum / head->count, head->max, *remaining != 0 ? ", " : "");
+           head->sum / head->count, head->max, ", ");
     print_node(head->right, &(*remaining--));
   }
 }
@@ -105,7 +105,7 @@ int main(void) {
   node *r = NULL, *n = NULL, *f = NULL;
   float temp;
   unsigned cur = 0;
-  FILE *file = fopen("./measurements_1m.txt", "r");
+  FILE *file = fopen("./measurements_100m.txt", "r");
   while (fgets(buf, sizeof(buf), file) != NULL) {
     sscanf(buf, "%[^;];%f", name, &temp);
     if ((f = find_node(r, name)) != NULL) {
