@@ -2,8 +2,6 @@
     A take on the baseline approach by using a binary tree instead
     of an array
 */
-#include <complex.h>
-#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
