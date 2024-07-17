@@ -7,10 +7,13 @@ I'm going to use this document to track where I'd like to make improvements to t
 3. mmap the input file
 4. use simd to calculate measurements   
 <strike>5. fix output</strike>
+6. No allocations
 
 ## Fix Output
 
 I just noticed while outputting the 2t.c script. The ternary expression that I'm using to toggle commas in between cities is causing there to be no gaps in between many city output values.
+
+I ended up changing things, so that I always print a comma in-between values -- so it's not formatted properly still. Something to fix in final output
 
 ## Leverage Java Library to Create Sample Measurements
 
