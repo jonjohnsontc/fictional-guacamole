@@ -3,9 +3,9 @@
 I'm going to use this document to track where I'd like to make improvements to the runtime/processing of the measurements:
 
 <strike>1. Leverage the Java Library to Create sample measurements</strike>
-2. Try to use threading 
+2. Try to use threading
 3. mmap the input file
-4. use simd to calculate measurements   
+4. use simd to calculate measurements
 <strike>5. fix output</strike>
 6. No allocations
 7. Sorting the output inclusive of special characters
@@ -14,7 +14,7 @@ I'm going to use this document to track where I'd like to make improvements to t
 
 Learning about how one can store trees in an array has me thinking that it's possible to store some sort of self balancing tree that would be easier to iterate through. In addition, I could avoid any malloc implementations by allocating the entire thing statically at the beginning.
 
-Super ignorantly, I think I could store some entries in a binary tree. 
+Super ignorantly, I think I could store some entries in a binary tree.
 
 ## Fix Output
 
