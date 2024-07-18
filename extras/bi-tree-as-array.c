@@ -25,24 +25,26 @@ int main(void) {
   printf("Here's the first one - %s val %f\n", tree[0].name, tree[0].val);
   add_to_tree("Fred", 22.8, tree);
   add_to_tree("Bill", 12.3, tree);
+  printf("Here's the second one after being modified: - %s val %f\n",
+         tree[2].name, tree[2].val);
   return 0;
 }
 
 // Recursive version of 'add_to_tree'
 int add_to_tree_r(char *name, float temp, Node tree[], unsigned *idx) {
-  if (tree[*idx]->new) {
-    strcpy(tree[*idx]->name, name);
-    tree[*idx]->val = temp;
-    tree[*idx]->new = false;
+  if (tree[*idx].new) {
+    strcpy(tree[*idx].name, name);
+    tree[*idx].val = temp;
+    tree[*idx].new = false;
     return *idx;
-  } else if (strcmp(tree[*idx]->name, name) > 0)
+  } else if (strcmp(tree[*idx].name, name) > 0)
     *idx = *idx * 2;
   else
     *idx = *idx * 2 + 1;
   return add_to_tree_r(name, temp, tree, idx);
 }
 
-int add_to_tree(char *name, float temp, Node *tree[]) {
+int add_to_tree(char *name, float temp, Node tree[]) {
   unsigned idx = 1;
   return add_to_tree_r(name, temp, tree, &idx);
 }
