@@ -33,13 +33,13 @@ float min(float a, float b);
 
 int main(void) {
   // we leverage GNU array extensions to initialize all values
-  static Node tree[MAX_ENTRIES + 1] = {
+  static Node tree[MAX_ENTRIES * 4 + 1] = {
       [0 ...(MAX_ENTRIES)] = {"", 0, 0.0, 0.0, 0.0, true}};
   static HashEntry map[MAX_ENTRIES] = {
       [0 ...(MAX_ENTRIES - 1)] = {"", 0, false}};
   char buffer[BUF_SIZE];
   char name[WORD_SIZE];
-  unsigned idx;
+  unsigned idx, cnt;
   float temp;
   FILE *file = fopen("./measurements_1m.txt", "r");
   while (fgets(buffer, sizeof(buffer), file) != NULL) {
@@ -55,19 +55,17 @@ int main(void) {
       tree[idx].min = min(temp, tree[idx].min);
       tree[idx].sum += temp;
     }
+    cnt++;
   }
-  printf("Hello trees!\n");
-  printf("Here's the first one - %s val %f\n", tree[0].name, tree[0].min);
-  add_to_tree("Fred", 22.8, tree);
-  add_to_tree("Bill", 12.3, tree);
-  find_node("Fred", map);
-  printf("Here's the second one after being modified: - %s min %f\n",
-         tree[2].name, tree[2].min);
   return 0;
 }
 
 // Recursive version of 'add_to_tree'
 int add_to_tree_r(char *name, float temp, Node tree[], unsigned *idx) {
+  if (*idx > MAX_ENTRIES * 4) {
+    fprintf(stderr, "Too many entries, quitting\n");
+    exit(1);
+  }
   if (tree[*idx].new) {
     strcpy(tree[*idx].name, name);
     tree[*idx].min = temp;
