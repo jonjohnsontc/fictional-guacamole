@@ -4,6 +4,7 @@
 */
 #include <stdbool.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #define BUF_SIZE 256
 #define WORD_SIZE 100
@@ -64,6 +65,7 @@ int main(void) {
 int add_to_tree_r(char *name, float temp, Node tree[], unsigned *idx) {
   if (*idx > MAX_ENTRIES * 4) {
     fprintf(stderr, "Too many entries, quitting\n");
+    fprintf(stderr, "Current count %u\n", cnt);
     exit(1);
   }
   if (tree[*idx].new) {
