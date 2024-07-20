@@ -76,6 +76,10 @@ void insertNonFull(BTree *tree, int index, int key) {
   }
 }
 
+/*
+  Split child node at childIndex and move half it's nodes to a new child.
+
+ */
 void splitChild(BTree *tree, int parentIndex, int childIndex) {
   BTreeNode *parent = &tree->nodes[parentIndex];
   BTreeNode *child = &tree->nodes[parent->children[childIndex]];
@@ -108,9 +112,14 @@ void splitChild(BTree *tree, int parentIndex, int childIndex) {
   }
   parent->children[childIndex + 1] = newIndex;
 
+  // Set j to last index of parent keys, while j is greater than or
+  // equal to the childIndex, shift each key to the right
   for (int j = parent->numKeys - 1; j >= childIndex; j--) {
     parent->keys[j + 1] = parent->keys[j];
   }
+  // to fill the role of new comparison key,
+  // the childIndex in the parent keys will now be
+  // set to what was the middle of the child keys
   parent->keys[childIndex] = child->keys[MAX_KEYS / 2];
   parent->numKeys++;
 }
