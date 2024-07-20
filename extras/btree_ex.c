@@ -46,7 +46,7 @@ void insertNonFull(BTree *tree, int index, int key) {
   int i = node->numKeys - 1;
   // all nodes start out as leaf nodes
   if (node->isLeaf) {
-    // starting from the right side of the keys
+    // starting from the index passed
     // keep shifting them over to the right until you
     // run into one that is <= the key
     // (basically insert it in order)
@@ -57,16 +57,21 @@ void insertNonFull(BTree *tree, int index, int key) {
     node->keys[i + 1] = key;
     node->numKeys++;
   } else {
+    // go through the node until you hit a key that is == or
+    // less than the key
     while (i >= 0 && node->keys[i] > key) {
       i--;
     }
     i++;
+    // If the child at max keys, we'll need to split it
     if (tree->nodes[node->children[i]].numKeys == MAX_KEYS) {
       splitChild(tree, index, i);
       if (node->keys[i] < key) {
         i++;
       }
     }
+    // insert the key in order to the child
+    // will recursively iterate to the leaf node
     insertNonFull(tree, node->children[i], key);
   }
 }
@@ -74,21 +79,30 @@ void insertNonFull(BTree *tree, int index, int key) {
 void splitChild(BTree *tree, int parentIndex, int childIndex) {
   BTreeNode *parent = &tree->nodes[parentIndex];
   BTreeNode *child = &tree->nodes[parent->children[childIndex]];
+  // we first create a new node for the tree
   int newIndex = createNode(tree);
   BTreeNode *newNode = &tree->nodes[newIndex];
   newNode->isLeaf = child->isLeaf;
   newNode->numKeys = MAX_KEYS / 2;
 
+  // assign keys from the halfway point and up of
+  // the child's keys to the new node
   for (int j = 0; j < MAX_KEYS / 2; j++) {
     newNode->keys[j] = child->keys[j + MAX_KEYS / 2 + 1];
   }
+  // if the child is not a leaf, we also assign
+  // children from it's halfway mark and up to the new node
   if (!child->isLeaf) {
     for (int j = 0; j < MAX_KEYS / 2 + 1; j++) {
       newNode->children[j] = child->children[j + MAX_KEYS / 2 + 1];
     }
   }
+  // then cut the child's number of keys in half
   child->numKeys = MAX_KEYS / 2;
 
+  // move the children in the parent node to the right
+  // until we get to the the node after the child index, and set
+  // our new node to this value.
   for (int j = parent->numKeys; j >= childIndex + 1; j--) {
     parent->children[j + 1] = parent->children[j];
   }
