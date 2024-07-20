@@ -133,7 +133,7 @@ void printTree(BTree *tree, int index, int depth) {
   }
 }
 
-int main() {
+int main(void) {
   BTree tree;
   initializeBTree(&tree);
 

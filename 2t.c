@@ -1,6 +1,6 @@
 /*
     A take on the baseline approach by using a binary tree instead
-    of an array
+    of an array. Still executed in a single thread
 */
 #include <stdio.h>
 #include <stdlib.h>
