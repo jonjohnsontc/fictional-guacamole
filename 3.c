@@ -1,6 +1,26 @@
 /*
   Identical to the tree solution (2tc), except we avoid calling malloc by
-  keeping every node in the binary tree within an array
+  keeping every node in a Btree within an array
+
+  TODO: Add BTree impl
+  Right now this is going to segfault going through all of the cities, because
+  the binary tree used does not balance itself
+
+  We first statically allocate enough memory to hold a BTree and Hashmap
+  referencing the entities in the btree. We hardcode the filename to read in,
+  and begin reading the file line by line
+  We split the line into city name and temperature values, and see if the city
+  name is located in the cities hashmap. If so, we retrieve the city's reference
+  number and use it to pull the city from the BTree. If it's not, we generate a
+  new BTree node with the city's identity and add it to the BTree and hashmap.
+
+  After retrieving this BTree node, we add the temperature reading to each
+  of the summary stats that we can.
+
+  After reading all lines, we print the contents of the BTree (cities) in
+  alphabetical order along with their statistics. We compute the average
+  temperature for each city as we iterate through them. This info is printed
+  as well;
 */
 #include <stdbool.h>
 #include <stdio.h>
@@ -28,7 +48,7 @@ unsigned add_to_tree(char *name, float temp, Node tree[]);
 /* Add new value to hashmap after adding to tree*/
 void add_node(char *name, unsigned val, HashEntry map[]);
 /* Find node of tree using hashmap*/
-unsigned find_node(char *name, HashEntry map[]);
+int find_node(char *name, HashEntry map[]);
 float max(float a, float b);
 float min(float a, float b);
 
@@ -40,7 +60,8 @@ int main(void) {
       [0 ...(MAX_ENTRIES - 1)] = {"", 0, false}};
   char buffer[BUF_SIZE];
   char name[WORD_SIZE];
-  unsigned idx, cnt;
+  unsigned cnt = 0;
+  int idx;
   float temp;
   FILE *file = fopen("./measurements_1m.txt", "r");
   while (fgets(buffer, sizeof(buffer), file) != NULL) {
@@ -58,16 +79,12 @@ int main(void) {
     }
     cnt++;
   }
+  printf("Completed computing stats for %d cities", cnt);
   return 0;
 }
 
 // Recursive version of 'add_to_tree'
 int add_to_tree_r(char *name, float temp, Node tree[], unsigned *idx) {
-  if (*idx > MAX_ENTRIES * 4) {
-    fprintf(stderr, "Too many entries, quitting\n");
-    fprintf(stderr, "Current count %u\n", cnt);
-    exit(1);
-  }
   if (tree[*idx].new) {
     strcpy(tree[*idx].name, name);
     tree[*idx].min = temp;
@@ -99,7 +116,7 @@ unsigned long hash(char *str) {
   return hash % MAX_ENTRIES;
 }
 
-unsigned find_node(char *name, HashEntry map[]) {
+int find_node(char *name, HashEntry map[]) {
   long hashval = hash(name);
   while (map[hashval].in_use == true) {
     if (strcmp(map[hashval].key, name) == 0) {

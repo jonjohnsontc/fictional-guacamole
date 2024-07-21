@@ -32,6 +32,10 @@ void initializeBTree(BTree *tree) {
 }
 
 int createNode(BTree *tree) {
+  // There's no sort of length checking here, so this could extend into
+  // unallocated sections on memory. If I want to do something similar
+  // I should make sure to do that in `createNode` or `insert` or potentially
+  // one level up
   int index = tree->nextFreeIndex++;
   tree->nodes[index].isLeaf = 1;
   tree->nodes[index].numKeys = 0;
