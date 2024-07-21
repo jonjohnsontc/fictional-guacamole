@@ -26,20 +26,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#define BUF_SIZE 256
-#define WORD_SIZE 100
-#define MAX_ENTRIES 100000
+#define BUF_SIZE 256       // max line size to read in
+#define WORD_SIZE 100      // max size of city name in chars
+#define MAX_ENTRIES 100000 // Total number of allowed city entries
+#define MAX_KEYS 5         // order of our BTree
 
-// TODO: We'll need to adjust data structures and the api to allow for
-// working with BTrees
-// I need some type of way to represent the city names as keys and children
-// I think them both referring to the absolute indices of
 typedef struct {
-  unsigned count;
-  float min, max;
-  double sum;
-
-  // attributes associated with the node as a BTree member
   bool is_leaf;
   unsigned no_children;
   unsigned children[];
@@ -47,18 +39,21 @@ typedef struct {
   unsigned keys[];
 } Node;
 typedef struct {
-  Node nodes[MAX_ENTRIES];
+  Node nodes[MAX_ENTRIES / 2];
   unsigned root_index;
   unsigned next_free_index;
 } BTree;
 typedef struct {
   char key[WORD_SIZE]; // Name of the city from input
-  unsigned value;      // corresponds to idx of Node in BTree array
-  bool in_use;         // true if entry corresponds to BTree Node
+  unsigned count;
+  float min, max;
+  double sum;
+  unsigned value; // corresponds to idx of Node in BTree array
+  bool in_use;    // true if entry corresponds to BTree Node
 } HashEntry;
 
 /* Add node with temp value to tree, return idx of node */
-unsigned add_to_tree(char *name, float temp, Node tree[]);
+unsigned add_to_listing(char *name, float temp, BTree *tree, HashEntry map[]);
 /* Add new value to hashmap after adding to tree*/
 void add_node(char *name, unsigned val, HashEntry map[]);
 /* Find node of tree using hashmap*/
@@ -67,11 +62,8 @@ float max(float a, float b);
 float min(float a, float b);
 
 int main(void) {
-  // we leverage GNU array extensions to initialize all values
-  static Node tree[MAX_ENTRIES * 4 + 1] = {
-      [0 ...(MAX_ENTRIES)] = {"", 0, 0.0, 0.0, 0.0, true}};
-  static HashEntry map[MAX_ENTRIES] = {
-      [0 ...(MAX_ENTRIES - 1)] = {"", 0, false}};
+  HashEntry map[MAX_ENTRIES];
+  BTree tree;
   char buffer[BUF_SIZE];
   char name[WORD_SIZE];
   unsigned cnt = 0;
@@ -82,46 +74,15 @@ int main(void) {
     sscanf(buffer, "%[^;];%f", name, &temp);
     if ((idx = find_node(name, map)) == -1) {
       // create a new node for the city
-      idx = add_to_tree(name, temp, tree);
+      idx = add_to_listing(name, temp, tree, map);
       add_node(name, idx, map);
     } else {
       // add value to node
-      tree[idx].count++;
-      tree[idx].max = max(temp, tree[idx].max);
-      tree[idx].min = min(temp, tree[idx].min);
-      tree[idx].sum += temp;
     }
     cnt++;
   }
   printf("Completed computing stats for %d cities", cnt);
   return 0;
-}
-
-// Recursive version of 'add_to_tree'
-// this is way different than the BTree implementation
-// We start at 1 and double or double + 1 any upcoming indices
-// Whereas we simply increase the index by one every time we
-// create a new node in the BTree ex
-// in addition, we recursively search for the node
-int add_to_tree_r(char *name, float temp, Node tree[], unsigned *idx) {
-  if (tree[*idx].new) {
-    strcpy(tree[*idx].name, name);
-    tree[*idx].min = temp;
-    tree[*idx].max = temp;
-    tree[*idx].sum = temp;
-    tree[*idx].count = 1;
-    tree[*idx].new = false;
-    return *idx;
-  } else if (strcmp(tree[*idx].name, name) > 0)
-    *idx = *idx * 2;
-  else
-    *idx = *idx * 2 + 1;
-  return add_to_tree_r(name, temp, tree, idx);
-}
-
-unsigned add_to_tree(char *name, float temp, Node tree[]) {
-  unsigned idx = 1;
-  return add_to_tree_r(name, temp, tree, &idx);
 }
 
 // Helper function used to create nodes for the BTree
@@ -137,16 +98,28 @@ void create_node(BTree *tree) {
   node.no_keys = 0;
 }
 
-// Hash Table Related Functions
-// djb2 hash function - found via http://www.cse.yorku.ca/~oz/hash.html
-// (https://stackoverflow.com/questions/7666509/hash-function-for-string)
-unsigned long hash(char *str) {
-  unsigned long hash = 5381;
-  int c;
-
-  while ((c = *str++))
-    hash = ((hash << 5) + hash) + c;
-  return hash % MAX_ENTRIES;
+// Recursive version of 'add_to_listing'
+// Whereas we simply increase the index by one every time we
+// create a new node in the BTree ex
+// in addition, we recursively search for the node
+unsigned add_to_listing(char *name, float temp, BTree *tree, HashEntry map[]) {
+  unsigned idx;
+  // There could be space on
+  Node *root = &tree->nodes[tree->root_index];
+  if (root->no_keys == MAX_KEYS) {
+    int newRootIndex = create_node(tree);
+    tree->rootIndex = newRootIndex;
+    BTreeNode *newRoot = &tree->nodes[newRootIndex];
+    newRoot->isLeaf = 0;
+    newRoot->numKeys = 0;
+    newRoot->children[0] = root - tree->nodes;
+    split_child(tree, newRootIndex, 0);
+    tree_insert(tree, newRootIndex, key);
+  } else {
+    tree_insert(tree, tree->rootIndex, key);
+  }
+}
+return idx;
 }
 
 int find_node(char *name, HashEntry map[]) {
