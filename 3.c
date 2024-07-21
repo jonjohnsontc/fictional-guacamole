@@ -20,7 +20,7 @@
   After reading all lines, we print the contents of the BTree (cities) in
   alphabetical order along with their statistics. We compute the average
   temperature for each city as we iterate through them. This info is printed
-  as well;
+  as well
 */
 #include <stdbool.h>
 #include <stdio.h>
@@ -30,17 +30,31 @@
 #define WORD_SIZE 100
 #define MAX_ENTRIES 100000
 
+// TODO: We'll need to adjust data structures and the api to allow for
+// working with BTrees
+// I need some type of way to represent the city names as keys and children
+// I think them both referring to the absolute indices of
 typedef struct {
-  char name[WORD_SIZE];
   unsigned count;
   float min, max;
   double sum;
-  bool new; // true if Node doesn't belong to anything
+
+  // attributes associated with the node as a BTree member
+  bool is_leaf;
+  unsigned no_children;
+  unsigned children[];
+  unsigned no_keys;
+  unsigned keys[];
 } Node;
 typedef struct {
-  char key[WORD_SIZE];
-  unsigned value;
-  bool in_use;
+  Node nodes[MAX_ENTRIES];
+  unsigned root_index;
+  unsigned next_free_index;
+} BTree;
+typedef struct {
+  char key[WORD_SIZE]; // Name of the city from input
+  unsigned value;      // corresponds to idx of Node in BTree array
+  bool in_use;         // true if entry corresponds to BTree Node
 } HashEntry;
 
 /* Add node with temp value to tree, return idx of node */
@@ -84,6 +98,11 @@ int main(void) {
 }
 
 // Recursive version of 'add_to_tree'
+// this is way different than the BTree implementation
+// We start at 1 and double or double + 1 any upcoming indices
+// Whereas we simply increase the index by one every time we
+// create a new node in the BTree ex
+// in addition, we recursively search for the node
 int add_to_tree_r(char *name, float temp, Node tree[], unsigned *idx) {
   if (tree[*idx].new) {
     strcpy(tree[*idx].name, name);
@@ -105,6 +124,20 @@ unsigned add_to_tree(char *name, float temp, Node tree[]) {
   return add_to_tree_r(name, temp, tree, &idx);
 }
 
+// Helper function used to create nodes for the BTree
+// doesn't associate any key information
+void create_node(BTree *tree) {
+  unsigned next_free_index = tree->next_free_index++;
+  if (next_free_index > MAX_ENTRIES) {
+    fprintf(stderr, "Max nodes reached\n");
+    exit(1);
+  }
+  Node node = tree->nodes[next_free_index];
+  node.is_leaf = true;
+  node.no_keys = 0;
+}
+
+// Hash Table Related Functions
 // djb2 hash function - found via http://www.cse.yorku.ca/~oz/hash.html
 // (https://stackoverflow.com/questions/7666509/hash-function-for-string)
 unsigned long hash(char *str) {
@@ -130,12 +163,20 @@ int find_node(char *name, HashEntry map[]) {
 
 void add_node(char *name, unsigned val, HashEntry map[]) {
   long hashval = hash(name);
-  while (map[hashval].in_use == true)
-    hashval++;
+  while (map[hashval].in_use == true) {
+    long next = hashval + 1;
+    if (next < hashval) {
+      fprintf(stderr, "Overflow detected while adding hash node\n");
+      exit(1);
+    }
+  }
+  hashval++;
   strcpy(map[hashval].key, name);
   map[hashval].value = val;
   map[hashval].in_use = true;
 }
+
+// Calculation and sort helpers
 
 float max(float a, float b) {
   if (a > b)
