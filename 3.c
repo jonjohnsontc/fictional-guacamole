@@ -146,6 +146,8 @@ void split_child(BTree *tree, Cities *cities, unsigned parent_idx,
                  unsigned child_idx) {
   Node *parent = &tree->nodes[parent_idx];
   Node *child = &tree->nodes[parent->children[child_idx]];
+  City city;
+  unsigned city_idx;
   // we first create a new node for the tree
   unsigned new_idx = create_node(tree);
   Node *new_node = &tree->nodes[new_idx];
@@ -155,7 +157,11 @@ void split_child(BTree *tree, Cities *cities, unsigned parent_idx,
   // assign keys from the halfway point and up of
   // the child's keys to the new node
   for (int j = 0; j < MAX_KEYS / 2; j++) {
-    new_node->keys[j] = child->keys[j + MAX_KEYS / 2 + 1];
+    new_node->keys[j] = city_idx = child->keys[j + MAX_KEYS / 2 + 1];
+    // we also need to update the corresponding city so it points
+    // to it's new BTree node
+    city = cities->v[new_node->keys[j]];
+    city.tree_idx = new_idx;
   }
   // if the child is not a leaf, we also assign
   // children from it's halfway mark and up to the new node
@@ -187,7 +193,52 @@ void split_child(BTree *tree, Cities *cities, unsigned parent_idx,
   parent->no_keys++;
 };
 
-void tree_insert(BTree *tree, Cities *cities, unsigned idx, char *name);
+int comp_keys(Cities *cities, unsigned key1, unsigned key2) {
+  int res;
+  City city1 = cities->v[key1];
+  City city2 = cities->v[key2];
+  return strcmp(city1.name, city2.name);
+}
+
+void tree_insert(BTree *tree, Cities *cities, unsigned idx,
+                 unsigned new_city_idx) {
+  // starts at either a new root or the current root
+  Node *node = &tree->nodes[idx];
+  int i = node->no_keys - 1;
+  // all nodes start out as leaf nodes
+  if (node->is_leaf) {
+    // starting from the index passed
+    // keep shifting them over to the right until you
+    // run into one that is <= the key
+    // (basically insert it in order)
+    // node->keys[i]
+    // key
+
+    while (i >= 0 && comp_keys(cities, node->keys[i], new_city_idx)) {
+      node->keys[i + 1] = node->keys[i];
+      i--;
+    }
+    node->keys[i + 1] = new_city_idx;
+    node->no_keys++;
+  } else {
+    // go through the node until you hit a key that is == or
+    // less than the key
+    while (i >= 0 && comp_keys(cities, node->keys[i], new_city_idx)) {
+      i--;
+    }
+    i++;
+    // If the child at max keys, we'll need to split it
+    if (tree->nodes[node->children[i]].no_keys == MAX_KEYS) {
+      split_child(tree, cities, idx, i);
+      if (comp_keys(cities, idx, node->keys[i])) {
+        i++;
+      }
+    }
+    // insert the key in order to the child
+    // will recursively iterate to the leaf node
+    tree_insert(tree, cities, node->children[i], new_city_idx);
+  }
+}
 
 // djb2 hash function - found via http://www.cse.yorku.ca/~oz/hash.html
 // (https://stackoverflow.com/questions/7666509/hash-function-for-string)
