@@ -90,6 +90,7 @@ void add_to_listing(char *name, float temp, Cities *cities, BTree *tree,
 /* Find node of tree using hashmap*/
 long get_map_index(char *name, HashEntry map[]);
 void print_cities(Cities *cities, BTree *tree);
+void initialize_btree(BTree *tree);
 float max(float a, float b);
 float min(float a, float b);
 
@@ -102,6 +103,7 @@ int main(void) {
   unsigned cnt = 0;
   int idx;
   float temp;
+  initialize_btree(&tree);
   FILE *file = fopen("./measurements_1m.txt", "r");
   while (fgets(buffer, sizeof(buffer), file) != NULL) {
     sscanf(buffer, "%[^;];%f", name, &temp);
@@ -125,6 +127,13 @@ int main(void) {
 
 // Helper function used to create nodes for the BTree
 // void  doesn't associate any key information
+void initialize_btree(BTree *tree) {
+  tree->root_index = 0;
+  tree->next_free_index = 1;
+  tree->nodes[0].is_leaf = 1;
+  tree->nodes[0].no_keys = 0;
+}
+
 unsigned create_node(BTree *tree) {
   unsigned next_free_index = tree->next_free_index++;
   if (next_free_index > MAX_ENTRIES) {
@@ -334,6 +343,5 @@ float min(float a, float b) {
 }
 
 void print_cities(Cities *cities, BTree *tree) {
-  unsigned root_idx = tree->root_index;
   printf("print_cities: Not Implemented\n");
 }
