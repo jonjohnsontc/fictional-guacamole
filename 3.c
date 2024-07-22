@@ -93,6 +93,7 @@ void add_to_listing(char *name, float temp, Cities *cities, BTree *tree,
                     HashEntry map[]);
 /* Find node of tree using hashmap*/
 long get_map_index(char *name, HashEntry map[]);
+void print_cities(Cities *cities);
 float max(float a, float b);
 float min(float a, float b);
 
@@ -121,6 +122,7 @@ int main(void) {
     }
     cnt++;
   }
+  print_cities(&cities);
   printf("Completed computing stats for %d cities", cnt);
   return 0;
 }
@@ -139,6 +141,7 @@ unsigned create_node(BTree *tree) {
   return next_free_index;
 }
 
+// TODO: Still need to add interaction with cities
 void split_child(BTree *tree, Cities *cities, unsigned parent_idx,
                  unsigned child_idx) {
   Node *parent = &tree->nodes[parent_idx];
