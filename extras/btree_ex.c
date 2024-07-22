@@ -12,7 +12,8 @@
 #define TREE_SIZE 100
 
 typedef struct {
-  int keys[MAX_KEYS];
+  int keys[MAX_KEYS]; // each key is the comparison value to determine which
+                      // child to sort in which
   int numKeys;
   int children[MAX_CHILDREN];
   int isLeaf;

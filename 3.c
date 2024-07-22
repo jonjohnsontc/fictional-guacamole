@@ -21,6 +21,31 @@
   alphabetical order along with their statistics. We compute the average
   temperature for each city as we iterate through them. This info is printed
   as well
+
+  ---
+
+  How will this be implemented?
+
+  Maybe three data structures:
+    - BTree (to hold order things should be printed in)
+      - stores ref to Temp array
+    - Temp array (to store temperature names & values)
+      - stores refs to BTree and Hashmap
+    - Hashmap (for O(1) lookup of cities)
+      - stores ref to Temp array
+
+  To add a new city:
+    - Make sure that we have space in the temperature array
+    - add temperature value to attrs
+    - hash and add to hashmap
+    - add to Btree
+
+  To add to Btree
+    - grab root node, see if its full
+    - if it is split the root node
+    - else insert the index of the city node in order based on it's name into
+  the BTree
+      - this step happens while recursively looking for a leaf node
 */
 #include <stdbool.h>
 #include <stdio.h>
@@ -34,34 +59,45 @@
 typedef struct {
   bool is_leaf;
   unsigned no_children;
-  unsigned children[];
+  unsigned children[MAX_KEYS + 1];
   unsigned no_keys;
-  unsigned keys[];
+  unsigned keys[MAX_KEYS];
+  unsigned city_idx;
 } Node;
 typedef struct {
-  Node nodes[MAX_ENTRIES / 2];
+  Node nodes[MAX_ENTRIES / 5];
   unsigned root_index;
   unsigned next_free_index;
 } BTree;
 typedef struct {
-  char key[WORD_SIZE]; // Name of the city from input
+  char key[WORD_SIZE]; // supposed to be the same as the corresponding
+                       // City.name, only used for debugging now
+  unsigned city_idx;
+  bool in_use;
+} HashEntry;
+typedef struct {
+  char name[WORD_SIZE];
   unsigned count;
   float min, max;
   double sum;
-  unsigned value; // corresponds to idx of Node in BTree array
-  bool in_use;    // true if entry corresponds to BTree Node
-} HashEntry;
+  unsigned hash_idx; // idx in hashmap
+  unsigned tree_idx; // idx in tree
+} City;
+typedef struct {
+  unsigned count;
+  City v[MAX_ENTRIES];
+} Cities;
 
 /* Add node with temp value to tree, return idx of node */
-unsigned add_to_listing(char *name, float temp, BTree *tree, HashEntry map[]);
-/* Add new value to hashmap after adding to tree*/
-void add_node(char *name, unsigned val, HashEntry map[]);
+void add_to_listing(char *name, float temp, Cities *cities, BTree *tree,
+                    HashEntry map[]);
 /* Find node of tree using hashmap*/
-int find_node(char *name, HashEntry map[]);
+long get_map_index(char *name, HashEntry map[]);
 float max(float a, float b);
 float min(float a, float b);
 
 int main(void) {
+  Cities cities;
   HashEntry map[MAX_ENTRIES];
   BTree tree;
   char buffer[BUF_SIZE];
@@ -72,12 +108,16 @@ int main(void) {
   FILE *file = fopen("./measurements_1m.txt", "r");
   while (fgets(buffer, sizeof(buffer), file) != NULL) {
     sscanf(buffer, "%[^;];%f", name, &temp);
-    if ((idx = find_node(name, map)) == -1) {
+    if ((idx = get_map_index(name, map)) == -1) {
       // create a new node for the city
-      idx = add_to_listing(name, temp, tree, map);
-      add_node(name, idx, map);
+      add_to_listing(name, temp, &cities, &tree, map);
     } else {
       // add value to node
+      City city = cities.v[idx];
+      city.count++;
+      city.max = max(city.max, temp);
+      city.min = min(city.min, temp);
+      city.sum += temp;
     }
     cnt++;
   }
@@ -86,8 +126,8 @@ int main(void) {
 }
 
 // Helper function used to create nodes for the BTree
-// doesn't associate any key information
-void create_node(BTree *tree) {
+// void  doesn't associate any key information
+unsigned create_node(BTree *tree) {
   unsigned next_free_index = tree->next_free_index++;
   if (next_free_index > MAX_ENTRIES) {
     fprintf(stderr, "Max nodes reached\n");
@@ -96,37 +136,119 @@ void create_node(BTree *tree) {
   Node node = tree->nodes[next_free_index];
   node.is_leaf = true;
   node.no_keys = 0;
+  return next_free_index;
 }
 
-// Recursive version of 'add_to_listing'
-// Whereas we simply increase the index by one every time we
-// create a new node in the BTree ex
-// in addition, we recursively search for the node
-unsigned add_to_listing(char *name, float temp, BTree *tree, HashEntry map[]) {
-  unsigned idx;
-  // There could be space on
+void split_child(BTree *tree, Cities *cities, unsigned parent_idx,
+                 unsigned child_idx) {
+  Node *parent = &tree->nodes[parent_idx];
+  Node *child = &tree->nodes[parent->children[child_idx]];
+  // we first create a new node for the tree
+  unsigned new_idx = create_node(tree);
+  Node *new_node = &tree->nodes[new_idx];
+  new_node->is_leaf = child->is_leaf;
+  new_node->no_keys = MAX_KEYS / 2;
+
+  // assign keys from the halfway point and up of
+  // the child's keys to the new node
+  for (int j = 0; j < MAX_KEYS / 2; j++) {
+    new_node->keys[j] = child->keys[j + MAX_KEYS / 2 + 1];
+  }
+  // if the child is not a leaf, we also assign
+  // children from it's halfway mark and up to the new node
+  if (!child->is_leaf) {
+    for (int j = 0; j < MAX_KEYS / 2 + 1; j++) {
+      new_node->children[j] = child->children[j + MAX_KEYS / 2 + 1];
+    }
+  }
+  // then cut the child's number of keys in half
+  child->no_keys = MAX_KEYS / 2;
+
+  // move the children in the parent node to the right
+  // until we get to the the node after the child index, and set
+  // our new node to this value.
+  for (int j = parent->no_keys; j >= child_idx + 1; j--) {
+    parent->children[j + 1] = parent->children[j];
+  }
+  parent->children[child_idx + 1] = new_idx;
+
+  // Set j to last index of parent keys, while j is greater than or
+  // equal to the child_idx, shift each key to the right
+  for (int j = parent->no_keys - 1; j >= child_idx; j--) {
+    parent->keys[j + 1] = parent->keys[j];
+  }
+  // to fill the role of new comparison key,
+  // the child_idx in the parent keys will now be
+  // set to what was the middle of the child keys
+  parent->keys[child_idx] = child->keys[MAX_KEYS / 2];
+  parent->no_keys++;
+};
+
+void tree_insert(BTree *tree, Cities *cities, unsigned idx, char *name);
+
+// djb2 hash function - found via http://www.cse.yorku.ca/~oz/hash.html
+// (https://stackoverflow.com/questions/7666509/hash-function-for-string)
+unsigned long hash(char *str) {
+  unsigned long hash = 5381;
+  int c;
+
+  while ((c = *str++))
+    hash = ((hash << 5) + hash) + c;
+  return hash % MAX_ENTRIES;
+}
+
+// right now i'm trying to combine the functionality of the insert function
+// from the BTree example and the ability to add the city and all of it's
+// information to the hash map
+void add_to_listing(char *name, float temp, Cities *cities, BTree *tree,
+                    HashEntry map[]) {
+  // We already know that the entry does not exist
+  // the next available index in the cities array will be
+  // its count
+  unsigned next_idx = cities->count;
+  City new_city = cities->v[next_idx];
+  strcpy(new_city.name, name);
+  new_city.max = temp;
+  new_city.min = temp;
+  new_city.sum = temp;
+  new_city.count = 1;
+
+  // set the city up in our hashmap
+  long hashval = hash(name);
+  while (map[hashval].in_use == true) {
+    // because of how I'm dealing with collisions (just incrementing)
+    // I'm going to check and see if I am beyond the array bounds each
+    // time we increment
+    unsigned long next = hashval + 1;
+    if (next > MAX_ENTRIES) {
+      fprintf(stderr, "Overflow detected while adding hash node\n");
+    }
+  }
+
+  // Here's where we deal with storing the node in a BTree, which helps us
+  // preserve their alphabetical order and allows for in order printing
+  // at the very end
   Node *root = &tree->nodes[tree->root_index];
   if (root->no_keys == MAX_KEYS) {
-    int newRootIndex = create_node(tree);
-    tree->rootIndex = newRootIndex;
-    BTreeNode *newRoot = &tree->nodes[newRootIndex];
-    newRoot->isLeaf = 0;
-    newRoot->numKeys = 0;
-    newRoot->children[0] = root - tree->nodes;
-    split_child(tree, newRootIndex, 0);
-    tree_insert(tree, newRootIndex, key);
+    unsigned new_root_idx = create_node(tree);
+    tree->root_index = new_root_idx;
+    Node *new_root = &tree->nodes[new_root_idx];
+    new_root->is_leaf = 0;
+    new_root->no_keys = 0;
+    new_root->children[0] = root - tree->nodes;
+    split_child(tree, cities, new_root_idx, 0);
+    tree_insert(tree, cities, new_root_idx, name);
   } else {
-    tree_insert(tree, tree->rootIndex, key);
+    tree_insert(tree, cities, tree->root_index, name);
   }
 }
-return idx;
-}
 
-int find_node(char *name, HashEntry map[]) {
+// Best case O(1) access to city values
+long get_map_index(char *name, HashEntry map[]) {
   long hashval = hash(name);
   while (map[hashval].in_use == true) {
     if (strcmp(map[hashval].key, name) == 0) {
-      return map[hashval].value;
+      return map[hashval].city_idx;
     } else {
       hashval++;
     }
@@ -145,7 +267,7 @@ void add_node(char *name, unsigned val, HashEntry map[]) {
   }
   hashval++;
   strcpy(map[hashval].key, name);
-  map[hashval].value = val;
+  map[hashval].city_idx = val;
   map[hashval].in_use = true;
 }
 
