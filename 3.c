@@ -291,9 +291,9 @@ void add_to_listing(char *name, float temp, Cities *cities, BTree *tree,
     new_root->no_keys = 0;
     new_root->children[0] = root - tree->nodes;
     split_child(tree, cities, new_root_idx, 0);
-    tree_insert(tree, cities, new_root_idx, name);
+    tree_insert(tree, cities, new_root_idx, next_idx);
   } else {
-    tree_insert(tree, cities, tree->root_index, name);
+    tree_insert(tree, cities, tree->root_index, next_idx);
   }
 }
 

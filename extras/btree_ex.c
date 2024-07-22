@@ -5,7 +5,6 @@
 
 */
 #include <stdio.h>
-#include <stdlib.h>
 
 #define MAX_KEYS 3
 #define MAX_CHILDREN (MAX_KEYS + 1)
