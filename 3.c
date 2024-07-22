@@ -2,10 +2,6 @@
   Identical to the tree solution (2tc), except we avoid calling malloc by
   keeping every node in a Btree within an array
 
-  TODO: Add BTree impl
-  Right now this is going to segfault going through all of the cities, because
-  the binary tree used does not balance itself
-
   We first statically allocate enough memory to hold a BTree and Hashmap
   referencing the entities in the btree. We hardcode the filename to read in,
   and begin reading the file line by line
@@ -93,14 +89,14 @@ void add_to_listing(char *name, float temp, Cities *cities, BTree *tree,
                     HashEntry map[]);
 /* Find node of tree using hashmap*/
 long get_map_index(char *name, HashEntry map[]);
-void print_cities(Cities *cities);
+void print_cities(Cities *cities, BTree *tree);
 float max(float a, float b);
 float min(float a, float b);
 
 int main(void) {
-  Cities cities;
-  HashEntry map[MAX_ENTRIES];
-  BTree tree;
+  static Cities cities;
+  static HashEntry map[MAX_ENTRIES];
+  static BTree tree;
   char buffer[BUF_SIZE];
   char name[WORD_SIZE];
   unsigned cnt = 0;
@@ -122,7 +118,7 @@ int main(void) {
     }
     cnt++;
   }
-  print_cities(&cities);
+  print_cities(&cities, &tree);
   printf("Completed computing stats for %d cities", cnt);
   return 0;
 }
@@ -141,7 +137,6 @@ unsigned create_node(BTree *tree) {
   return next_free_index;
 }
 
-// TODO: Still need to add interaction with cities
 void split_child(BTree *tree, Cities *cities, unsigned parent_idx,
                  unsigned child_idx) {
   Node *parent = &tree->nodes[parent_idx];
@@ -194,7 +189,6 @@ void split_child(BTree *tree, Cities *cities, unsigned parent_idx,
 };
 
 int comp_keys(Cities *cities, unsigned key1, unsigned key2) {
-  int res;
   City city1 = cities->v[key1];
   City city2 = cities->v[key2];
   return strcmp(city1.name, city2.name);
@@ -337,4 +331,9 @@ float min(float a, float b) {
   if (a < b)
     return a;
   return b;
+}
+
+void print_cities(Cities *cities, BTree *tree) {
+  unsigned root_idx = tree->root_index;
+  printf("print_cities: Not Implemented\n");
 }
