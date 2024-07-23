@@ -288,6 +288,7 @@ void add_to_listing(char *name, float temp, Cities *cities, BTree *tree,
   map[hashval].city_idx = next_idx;
   map[hashval].in_use = true;
   strcpy(map[hashval].key, name);
+  new_city.hash_idx = hashval;
 
   // Here's where we deal with storing the node in a BTree, which helps us
   // preserve their alphabetical order and allows for in order printing
