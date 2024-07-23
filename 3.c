@@ -54,7 +54,6 @@
 
 typedef struct {
   bool is_leaf;
-  unsigned no_children;
   unsigned children[MAX_KEYS + 1];
   unsigned no_keys;
   unsigned keys[MAX_KEYS];
@@ -81,7 +80,8 @@ typedef struct {
 } City;
 typedef struct {
   unsigned count;
-  City v[MAX_ENTRIES];
+  City v[MAX_ENTRIES + 1]; // we'll start at index 1, so zero doesn't mean
+                           // anything (it's the default value in nodes)
 } Cities;
 
 /* Add node with temp value to tree, return idx of node */
@@ -143,6 +143,7 @@ unsigned create_node(BTree *tree) {
   Node node = tree->nodes[next_free_index];
   node.is_leaf = true;
   node.no_keys = 0;
+  tree->nodes[next_free_index] = node;
   return next_free_index;
 }
 
@@ -166,6 +167,7 @@ void split_child(BTree *tree, Cities *cities, unsigned parent_idx,
     // to it's new BTree node
     city = cities->v[new_node->keys[j]];
     city.tree_idx = new_idx;
+    cities->v[new_node->keys[j]] = city;
   }
   // if the child is not a leaf, we also assign
   // children from it's halfway mark and up to the new node
@@ -217,7 +219,7 @@ void tree_insert(BTree *tree, Cities *cities, unsigned idx,
     // node->keys[i]
     // key
 
-    while (i >= 0 && comp_keys(cities, node->keys[i], new_city_idx)) {
+    while (i >= 0 && comp_keys(cities, node->keys[i], new_city_idx) > 0) {
       node->keys[i + 1] = node->keys[i];
       i--;
     }
@@ -226,7 +228,7 @@ void tree_insert(BTree *tree, Cities *cities, unsigned idx,
   } else {
     // go through the node until you hit a key that is == or
     // less than the key
-    while (i >= 0 && comp_keys(cities, node->keys[i], new_city_idx)) {
+    while (i >= 0 && comp_keys(cities, node->keys[i], new_city_idx) > 0) {
       i--;
     }
     i++;
@@ -261,14 +263,16 @@ void add_to_listing(char *name, float temp, Cities *cities, BTree *tree,
                     HashEntry map[]) {
   // We already know that the entry does not exist
   // the next available index in the cities array will be
-  // its count
-  unsigned next_idx = cities->count;
+  // 1 greater than the count (because we start at idx 1)
+  unsigned next_idx = cities->count + 1;
   City new_city = cities->v[next_idx];
   strcpy(new_city.name, name);
   new_city.max = temp;
   new_city.min = temp;
   new_city.sum = temp;
   new_city.count = 1;
+  cities->count += 1;
+  cities->v[next_idx] = new_city;
 
   // set the city up in our hashmap
   long hashval = hash(name);
@@ -276,11 +280,14 @@ void add_to_listing(char *name, float temp, Cities *cities, BTree *tree,
     // because of how I'm dealing with collisions (just incrementing)
     // I'm going to check and see if I am beyond the array bounds each
     // time we increment
-    unsigned long next = hashval + 1;
-    if (next > MAX_ENTRIES) {
+    hashval++;
+    if (hashval > MAX_ENTRIES) {
       fprintf(stderr, "Overflow detected while adding hash node\n");
     }
   }
+  map[hashval].city_idx = next_idx;
+  map[hashval].in_use = true;
+  strcpy(map[hashval].key, name);
 
   // Here's where we deal with storing the node in a BTree, which helps us
   // preserve their alphabetical order and allows for in order printing
