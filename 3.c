@@ -17,31 +17,6 @@
   alphabetical order along with their statistics. We compute the average
   temperature for each city as we iterate through them. This info is printed
   as well
-
-  ---
-
-  How will this be implemented?
-
-  Maybe three data structures:
-    - BTree (to hold order things should be printed in)
-      - stores ref to Temp array
-    - Temp array (to store temperature names & values)
-      - stores refs to BTree and Hashmap
-    - Hashmap (for O(1) lookup of cities)
-      - stores ref to Temp array
-
-  To add a new city:
-    - Make sure that we have space in the temperature array
-    - add temperature value to attrs
-    - hash and add to hashmap
-    - add to Btree
-
-  To add to Btree
-    - grab root node, see if its full
-    - if it is split the root node
-    - else insert the index of the city node in order based on it's name into
-  the BTree
-      - this step happens while recursively looking for a leaf node
 */
 #include <stdbool.h>
 #include <stdio.h>
@@ -89,7 +64,7 @@ void add_to_listing(char *name, float temp, Cities *cities, BTree *tree,
                     HashEntry map[]);
 /* Find node of tree using hashmap*/
 long get_map_index(char *name, HashEntry map[]);
-void print_cities(Cities *cities, BTree *tree);
+void print_cities(Cities *cities, BTree *tree, unsigned idx);
 void initialize_btree(BTree *tree);
 float max(float a, float b);
 float min(float a, float b);
@@ -100,11 +75,10 @@ int main(void) {
   static BTree tree;
   char buffer[BUF_SIZE];
   char name[WORD_SIZE];
-  unsigned cnt = 0;
   int idx;
   float temp;
   initialize_btree(&tree);
-  FILE *file = fopen("./measurements_1m.txt", "r");
+  FILE *file = fopen("./measurements_1.txt", "r");
   while (fgets(buffer, sizeof(buffer), file) != NULL) {
     sscanf(buffer, "%[^;];%f", name, &temp);
     if ((idx = get_map_index(name, map)) == -1) {
@@ -117,11 +91,12 @@ int main(void) {
       city.max = max(city.max, temp);
       city.min = min(city.min, temp);
       city.sum += temp;
+      cities.v[idx] = city;
     }
-    cnt++;
   }
-  print_cities(&cities, &tree);
-  printf("Completed computing stats for %d cities", cnt);
+  printf("{ ");
+  print_cities(&cities, &tree, tree.root_index);
+  printf("}\n");
   return 0;
 }
 
@@ -182,14 +157,16 @@ void split_child(BTree *tree, Cities *cities, unsigned parent_idx,
   // move the children in the parent node to the right
   // until we get to the the node after the child index, and set
   // our new node to this value.
-  for (int j = parent->no_keys; j >= child_idx + 1; j--) {
+  for (int j = parent->no_keys; j >= (int)child_idx + 1; j--) {
     parent->children[j + 1] = parent->children[j];
   }
   parent->children[child_idx + 1] = new_idx;
 
   // Set j to last index of parent keys, while j is greater than or
   // equal to the child_idx, shift each key to the right
-  for (int j = parent->no_keys - 1; j >= child_idx; j--) {
+  for (int j = parent->no_keys - 1; j >= (int)child_idx; j--) {
+    if (j < 0)
+      break;
     parent->keys[j + 1] = parent->keys[j];
   }
   // to fill the role of new comparison key,
@@ -225,6 +202,10 @@ void tree_insert(BTree *tree, Cities *cities, unsigned idx,
     }
     node->keys[i + 1] = new_city_idx;
     node->no_keys++;
+
+    City city = cities->v[new_city_idx];
+    city.tree_idx = idx;
+    cities->v[new_city_idx] = city;
   } else {
     // go through the node until you hit a key that is == or
     // less than the key
@@ -288,7 +269,7 @@ void add_to_listing(char *name, float temp, Cities *cities, BTree *tree,
   map[hashval].city_idx = next_idx;
   map[hashval].in_use = true;
   strcpy(map[hashval].key, name);
-  new_city.hash_idx = hashval;
+  cities->v[next_idx].hash_idx = hashval;
 
   // Here's where we deal with storing the node in a BTree, which helps us
   // preserve their alphabetical order and allows for in order printing
@@ -350,6 +331,17 @@ float min(float a, float b) {
   return b;
 }
 
-void print_cities(Cities *cities, BTree *tree) {
-  printf("print_cities: Not Implemented\n");
+void print_cities(Cities *cities, BTree *tree, unsigned idx) {
+  Node *node = &tree->nodes[idx];
+  for (int i = 0; i < node->no_keys; i++) {
+    unsigned city_idx = node->keys[i];
+    City city = cities->v[city_idx];
+    printf("%s=%.1f/%.1f/%.1f%s", city.name, city.min, city.sum / city.count,
+           city.max, ", ");
+  }
+  if (!node->is_leaf) {
+    for (int i = 0; i <= node->no_keys; i++) {
+      print_cities(cities, tree, node->children[i]);
+    }
+  }
 }
