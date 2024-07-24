@@ -237,9 +237,6 @@ unsigned long hash(char *str) {
   return hash % MAX_ENTRIES;
 }
 
-// right now i'm trying to combine the functionality of the insert function
-// from the BTree example and the ability to add the city and all of it's
-// information to the hash map
 void add_to_listing(char *name, float temp, Cities *cities, BTree *tree,
                     HashEntry map[]) {
   // We already know that the entry does not exist
