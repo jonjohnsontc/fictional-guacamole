@@ -48,15 +48,6 @@ void free_tree(node *n) {
   }
 }
 
-/*
-  As I iterate line-by-line
-
-  I want to check and see if the city is listed in the tree
-  - if it is, i want to add its measurements to its struct
-  - else i want to create a struct for the city and add it's info
-
-*/
-
 // djb2 hash function - found via http://www.cse.yorku.ca/~oz/hash.html
 // (https://stackoverflow.com/questions/7666509/hash-function-for-string)
 unsigned long hash(char *str) {
@@ -80,19 +71,6 @@ struct node *insert_node(struct node *head, struct node *node) {
   }
   return head;
 }
-
-// O(logn) search for node
-// struct node *find_node(struct node *head, char *name) {
-//   int res;
-//   if (head == NULL)
-//     return head;
-//   if ((res = strcmp(head->name, name)) == 0)
-//     return head;
-//   if (res < 0)
-//     return find_node(head->right, name);
-//   else
-//     return find_node(head->left, name);
-// }
 
 // Best case O(1) access to city values
 long get_map_index(char *name, HashEntry map[]) {
@@ -151,21 +129,6 @@ void add_to_map(HashEntry map[], node *node, long hashval, char *name) {
   map[hashval].node = node;
   map[hashval].in_use = true;
 }
-
-// void add_node(char *name, unsigned val, HashEntry map[]) {
-//   long hashval = hash(name);
-//   while (map[hashval].in_use == true) {
-//     long next = hashval + 1;
-//     if (next < hashval) {
-//       fprintf(stderr, "Overflow detected while adding hash node\n");
-//       exit(1);
-//     }
-//   }
-//   hashval++;
-//   strcpy(map[hashval].key, name);
-//   map[hashval].city_idx = val;
-//   map[hashval].in_use = true;
-// }
 
 int main(void) {
   char buf[BUF_SIZE];
