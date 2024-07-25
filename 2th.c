@@ -82,17 +82,17 @@ struct node *insert_node(struct node *head, struct node *node) {
 }
 
 // O(logn) search for node
-struct node *find_node(struct node *head, char *name) {
-  int res;
-  if (head == NULL)
-    return head;
-  if ((res = strcmp(head->name, name)) == 0)
-    return head;
-  if (res < 0)
-    return find_node(head->right, name);
-  else
-    return find_node(head->left, name);
-}
+// struct node *find_node(struct node *head, char *name) {
+//   int res;
+//   if (head == NULL)
+//     return head;
+//   if ((res = strcmp(head->name, name)) == 0)
+//     return head;
+//   if (res < 0)
+//     return find_node(head->right, name);
+//   else
+//     return find_node(head->left, name);
+// }
 
 // Best case O(1) access to city values
 long get_map_index(char *name, HashEntry map[]) {
@@ -139,29 +139,54 @@ float min(float a, float b) {
     return b;
 }
 
-HashEntry *create_entry(long hashval, char *name) {}
+void add_to_map(HashEntry map[], node *node, long hashval, char *name) {
+  while (map[hashval].in_use == true) {
+    hashval++;
+    if (hashval > MAX_ENTRIES) {
+      fprintf(stderr, "Error: Too many hashmap entries\n");
+      exit(1);
+    }
+  }
+  strcpy(map[hashval].key, name);
+  map[hashval].node = node;
+  map[hashval].in_use = true;
+}
+
+// void add_node(char *name, unsigned val, HashEntry map[]) {
+//   long hashval = hash(name);
+//   while (map[hashval].in_use == true) {
+//     long next = hashval + 1;
+//     if (next < hashval) {
+//       fprintf(stderr, "Overflow detected while adding hash node\n");
+//       exit(1);
+//     }
+//   }
+//   hashval++;
+//   strcpy(map[hashval].key, name);
+//   map[hashval].city_idx = val;
+//   map[hashval].in_use = true;
+// }
 
 int main(void) {
   char buf[BUF_SIZE];
   char name[WORD_SIZE];
+  static HashEntry map[MAX_ENTRIES];
   node *r = NULL, *n = NULL, *f = NULL;
   float temp;
   long hashval;
-  HashEntry entry;
   unsigned cur = 0;
   FILE *file = fopen("./measurements_100m.txt", "r");
   while (fgets(buf, sizeof(buf), file) != NULL) {
     sscanf(buf, "%[^;];%f", name, &temp);
-    if ((f = find_node(r, name)) != NULL) {
+    if ((f = find_node(map, r, name)) != NULL) {
       f->count++;
       f->max = max(f->max, temp);
       f->min = min(f->min, temp);
       f->sum += temp;
     } else {
       hashval = hash(name);
-      entry = create_entry(hashval, name);
-      add_to_map(map, hashval, entry);
       n = create_node(name, temp);
+      add_to_map(map, n, hashval, name);
       r = insert_node(r, n);
       cur++;
     }
