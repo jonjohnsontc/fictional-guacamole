@@ -29,6 +29,10 @@ I may need one, if a thread trys to unlock a thread, but can't...I would think t
 
 I want to avoid broadcasting and potentially causing some pileups, although that could probably be pretty easy to implement and validate through some basic testing
 
+**Are there alternatives to condition variables?**
+
+I could just check again in *x* ticks, or something similar. Given that it's a super small set of operations, I can't imagine it would take much time at all, or that I would need to recheck more than once or twice.
+
 ## No allocations
 
 Learning about how one can store trees in an array has me thinking that it's possible to store some sort of self balancing tree that would be easier to iterate through. In addition, I could avoid any malloc implementations by allocating the entire thing statically at the beginning.
