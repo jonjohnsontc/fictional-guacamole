@@ -13,6 +13,7 @@ the input has been read
 
 I think the threaded process is going to have some sort of queue
 */
+#include "./extras/tpool.h"
 #include <errno.h>
 #include <pthread.h>
 #include <stdbool.h>
@@ -52,36 +53,50 @@ typedef struct {
 
 // TODO: For now, we'll do something simple like acquire a lock on some
 // shared structure and increment a counter
-void *process(void *arg);
+typedef struct {
+  int num_rows;
+  pthread_mutex_t mut;
+} Processed;
+
+void process(void *arg);
 int main(void) {
   static HashEntry map[MAX_ENTRIES];
+  Processed rows = {0, PTHREAD_MUTEX_INITIALIZER};
   char buf[BUF_SIZE];
   pthread_t threads[MAX_THREADS];
   int status;
   // _SC_NPROCESSORS_ONLN is the number of currently available procs
-  int num_threads = sysconf(_SC_NPROCESSORS_CONF) / 2;
-  printf("Number of threads configured is %d\n", num_threads);
+  size_t num_threads = (size_t)sysconf(_SC_NPROCESSORS_CONF) / 2;
+  if (num_threads > MAX_THREADS)
+    num_threads = MAX_THREADS;
+  printf("Number of threads configured is %lu\n", num_threads);
   // Create thread pool
-  for (int i = 0; i < num_threads; i++) {
-    status = pthread_create(&threads[i], NULL, process, NULL);
-    if (status != 0)
-      err_abort(status, "thread creation");
-  }
+  tpool_t *pool = tpool_create(num_threads);
   printf("All threads created\n");
   FILE *file = fopen(MEASUREMENTS_FILE, "r");
   while (fgets(buf, sizeof(buf), file) != NULL) {
     // Enqueue line in work
+    void *to_work = &rows;
+    tpool_add_work(pool, process, to_work);
   }
-
+  tpool_wait(pool);
   // Print result after it's done
   // Destroy thread pool
-  for (int i = 0; i < num_threads; i++)
-    status = pthread_join(threads[i], NULL);
+  tpool_destroy(pool);
   printf("All threads completed\n");
   return 0;
 }
 
-void *process(void *arg) {
-  sleep(1);
-  return NULL;
+void process(void *arg) {
+  int status, misses = 0;
+  Processed *to_work = (Processed *)arg;
+  status = pthread_mutex_trylock(&to_work->mut);
+  if (status != EBUSY) {
+    if (status != 0)
+      err_abort(status, "Mutex trylock");
+    to_work->num_rows++;
+  } else {
+    misses++;
+  }
+  pthread_mutex_unlock(&to_work->mut);
 }
