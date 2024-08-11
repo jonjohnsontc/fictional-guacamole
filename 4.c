@@ -20,12 +20,13 @@ I think the threaded process is going to have some sort of queue
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include <unistd.h>
 #define BUF_SIZE 256
 #define WORD_SIZE 100
 #define MAX_THREADS 24
 #define MAX_ENTRIES 100000
-#define MEASUREMENTS_FILE "./measurements_100m.txt"
+#define MEASUREMENTS_FILE "./measurements_1m.txt"
 
 #define err_abort(code, text)                                                  \
   do {                                                                         \
@@ -47,9 +48,44 @@ I think the threaded process is going to have some sort of queue
 typedef struct {
   char key[WORD_SIZE];
   bool in_use;
-  struct node *node;
+  // struct node *node;
   // TODO: add mutex
 } HashEntry;
+
+// djb2 hash function - found via http://www.cse.yorku.ca/~oz/hash.html
+// (https://stackoverflow.com/questions/7666509/hash-function-for-string)
+unsigned long hash(char *str) {
+  unsigned long hash = 5381;
+  int c;
+
+  while ((c = *str++))
+    hash = ((hash << 5) + hash) + c;
+  return hash % MAX_ENTRIES;
+}
+
+long get_map_index(char *name, HashEntry map[]) {
+  long hashval = hash(name);
+  while (map[hashval].in_use == true) {
+    if (strcmp(map[hashval].key, name) == 0) {
+      return hashval;
+    } else {
+      hashval++;
+    }
+  }
+  return -1;
+}
+
+void add_to_map(HashEntry map[], long hashval, char *name) {
+  while (map[hashval].in_use == true) {
+    hashval++;
+    if (hashval > MAX_ENTRIES) {
+      fprintf(stderr, "Error: Too many hashmap entries\n");
+      exit(1);
+    }
+  }
+  strcpy(map[hashval].key, name);
+  map[hashval].in_use = true;
+}
 
 // TODO: For now, we'll do something simple like acquire a lock on some
 // shared structure and increment a counter
@@ -60,11 +96,9 @@ typedef struct {
 
 void process(void *arg);
 int main(void) {
-  static HashEntry map[MAX_ENTRIES];
+  // static HashEntry map[MAX_ENTRIES];
   Processed rows = {0, PTHREAD_MUTEX_INITIALIZER};
   char buf[BUF_SIZE];
-  pthread_t threads[MAX_THREADS];
-  int status;
   // _SC_NPROCESSORS_ONLN is the number of currently available procs
   size_t num_threads = (size_t)sysconf(_SC_NPROCESSORS_CONF) / 2;
   if (num_threads > MAX_THREADS)
@@ -84,19 +118,18 @@ int main(void) {
   // Destroy thread pool
   tpool_destroy(pool);
   printf("All threads completed\n");
+  printf("Total rows: %d\n", rows.num_rows);
   return 0;
 }
 
 void process(void *arg) {
-  int status, misses = 0;
+  int status;
   Processed *to_work = (Processed *)arg;
-  status = pthread_mutex_trylock(&to_work->mut);
-  if (status != EBUSY) {
-    if (status != 0)
-      err_abort(status, "Mutex trylock");
-    to_work->num_rows++;
-  } else {
-    misses++;
+  while ((status = pthread_mutex_trylock(&to_work->mut)) == EBUSY) {
+    sleep(1);
   }
+  if (status != 0)
+    err_abort(status, "Mutex trylock");
+  to_work->num_rows++;
   pthread_mutex_unlock(&to_work->mut);
 }
