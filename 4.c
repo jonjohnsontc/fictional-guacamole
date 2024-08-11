@@ -42,14 +42,16 @@ I think the threaded process is going to have some sort of queue
 /*
   All of the hashmap related structures + functions defined here
   Give us constant access to city's in array that have already been added
-
 */
 typedef struct {
   char key[WORD_SIZE];
   bool in_use;
   struct node *node;
+  // TODO: add mutex
 } HashEntry;
 
+// TODO: For now, we'll do something simple like acquire a lock on some
+// shared structure and increment a counter
 void *process(void *arg);
 int main(void) {
   static HashEntry map[MAX_ENTRIES];

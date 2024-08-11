@@ -2,24 +2,7 @@
   Trying to build out a thread pool, and using
   https://nachtimwald.com/2019/04/12/thread-pool-in-c/ as a guide
 */
-// HEADER FILE | INTERFACE
-#include <pthread.h>
-#include <stdbool.h>
-#include <stddef.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-struct tpool;
-typedef struct tpool tpool_t;
-
-typedef void (*thread_func_t)(void *arg);
-
-tpool_t *tpool_create(size_t num);
-void tpool_destroy(tpool_t *tm);
-
-bool tpool_add_work(tpool_t *tm, thread_func_t func, void *arg);
-void tpool_wait(tpool_t *tm);
-// END HEADER FILE
+#include "tpool.h"
 typedef struct tpool_work {
   thread_func_t func;
   void *arg;
@@ -195,42 +178,4 @@ void tpool_wait(tpool_t *tm) {
     }
   }
   pthread_mutex_unlock(&(tm->work_mutex));
-}
-
-// TESTING
-static const size_t num_threads = 4;
-static const size_t num_items = 100;
-
-void worker(void *arg) {
-  int *val = arg;
-  int old = *val;
-
-  *val += 1000;
-  printf("tid=%ld, old=%d, val=%d\n", pthread_self(), old, *val);
-  if (*val % 2)
-    usleep(100000);
-}
-
-int main(int argc, char **argv) {
-  tpool_t *tm;
-  int *vals;
-  size_t i;
-
-  tm = tpool_create(num_threads);
-  vals = calloc(num_items, sizeof(*vals));
-
-  for (i = 0; i < num_items; i++) {
-    vals[i] = i;
-    tpool_add_work(tm, worker, vals + i);
-  }
-
-  tpool_wait(tm);
-
-  for (i = 0; i < num_items; i++) {
-    printf("%d\n", vals[i]);
-  }
-
-  free(vals);
-  tpool_destroy(tm);
-  return 0;
 }
