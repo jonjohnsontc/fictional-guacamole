@@ -58,7 +58,7 @@ void msleep(long milliseconds) {
 void pthread_trylock_buffer(pthread_mutex_t *mutex) {
   int status;
   while ((status = pthread_mutex_trylock(mutex)) == EBUSY) {
-    msleep(5);
+    msleep(1);
   }
   if (status != 0)
     err_abort(status, "Mutex trylock");
@@ -70,6 +70,7 @@ void pthread_trylock_buffer(pthread_mutex_t *mutex) {
 typedef struct {
   char key[WORD_SIZE];
   bool in_use;
+  int count;
   // struct node *node;
   pthread_mutex_t mutex;
 } HashEntry;
@@ -122,10 +123,11 @@ typedef struct {
   pthread_mutex_t mut;
 } Processed;
 
-// TODO: Now, I want to put a lock with the map, and use that to add in cities
 void process(void *arg);
+void print_map(HashEntry *map, int n);
 int main(void) {
-  static HashEntry map[MAX_ENTRIES];
+  static HashEntry map[MAX_ENTRIES] = {
+      [0 ... MAX_ENTRIES - 1] = {"", false, 0, PTHREAD_MUTEX_INITIALIZER}};
   Processed rows = {0, "", map, PTHREAD_MUTEX_INITIALIZER};
   char buf[BUF_SIZE];
   // _SC_NPROCESSORS_ONLN is the number of currently available procs
@@ -151,6 +153,7 @@ int main(void) {
   tpool_destroy(pool);
   printf("All threads completed\n");
   printf("Total rows: %d\n", rows.num_rows);
+  print_map(map, MAX_ENTRIES);
   return 0;
 }
 
@@ -163,6 +166,17 @@ void process(void *arg) {
   if ((idx = get_map_index(to_work->cur_name, to_work->map_ref)) == -1) {
     unsigned long hashval = hash(to_work->cur_name);
     add_to_map(to_work->map_ref, hashval, to_work->cur_name);
+  } else {
+    pthread_trylock_buffer(&to_work->map_ref[idx].mutex);
+    to_work->map_ref[idx].count++;
+    pthread_mutex_unlock(&to_work->map_ref[idx].mutex);
   }
   pthread_mutex_unlock(&to_work->mut);
+}
+
+void print_map(HashEntry *map, int n) {
+  int i;
+  for (i = 0; i < n; i++)
+    if (map[i].in_use == true)
+      printf("city: %s, count %i\n", map[i].key, map[i].count);
 }
