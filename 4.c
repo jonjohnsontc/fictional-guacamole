@@ -41,15 +41,37 @@ I think the threaded process is going to have some sort of queue
     abort();                                                                   \
   } while (0)
 
-/*
-  All of the hashmap related structures + functions defined here
-  Give us constant access to city's in array that have already been added
-*/
+void msleep(long milliseconds) {
+  struct timespec req, rem;
+  req.tv_sec = 0;
+  req.tv_nsec = milliseconds * 1000000L;
+  while (nanosleep(&req, &rem) == -1) {
+    if (errno == EINTR) {
+      req = rem;
+    } else {
+      perror("nanosleep");
+      exit(1);
+    }
+  }
+}
+
+void pthread_trylock_buffer(pthread_mutex_t *mutex) {
+  int status;
+  while ((status = pthread_mutex_trylock(mutex)) == EBUSY) {
+    msleep(5);
+  }
+  if (status != 0)
+    err_abort(status, "Mutex trylock");
+}
+
+/* All of the hashmap related structures +
+  functions defined here Give us constant access to
+  city's in array that have already been added */
 typedef struct {
   char key[WORD_SIZE];
   bool in_use;
   // struct node *node;
-  // TODO: add mutex
+  pthread_mutex_t mutex;
 } HashEntry;
 
 // djb2 hash function - found via http://www.cse.yorku.ca/~oz/hash.html
@@ -76,6 +98,7 @@ long get_map_index(char *name, HashEntry map[]) {
 }
 
 void add_to_map(HashEntry map[], long hashval, char *name) {
+  // Let's find space for the entry in the hashmap
   while (map[hashval].in_use == true) {
     hashval++;
     if (hashval > MAX_ENTRIES) {
@@ -83,17 +106,24 @@ void add_to_map(HashEntry map[], long hashval, char *name) {
       exit(1);
     }
   }
+  // Let's lock the thread for the entry, so nobody else can touch it
+  int status;
+  pthread_trylock_buffer(&map[hashval].mutex);
   strcpy(map[hashval].key, name);
   map[hashval].in_use = true;
+  pthread_mutex_unlock(&map[hashval].mutex);
 }
 
 // TODO: For now, we'll do something simple like acquire a lock on some
 // shared structure and increment a counter
 typedef struct {
   int num_rows;
+  char cur_name[WORD_SIZE];
+  HashEntry *map_ref;
   pthread_mutex_t mut;
 } Processed;
 
+// TODO: Now, I want to put a lock with the map, and use that to add in cities
 void process(void *arg);
 int main(void) {
   // static HashEntry map[MAX_ENTRIES];
@@ -109,6 +139,9 @@ int main(void) {
   printf("All threads created\n");
   FILE *file = fopen(MEASUREMENTS_FILE, "r");
   while (fgets(buf, sizeof(buf), file) != NULL) {
+    pthread_trylock_buffer(&rows.mut);
+    strcpy(rows.cur_name, buf);
+    pthread_mutex_unlock(&rows.mut);
     // Enqueue line in work
     void *to_work = &rows;
     tpool_add_work(pool, process, to_work);
@@ -123,13 +156,14 @@ int main(void) {
 }
 
 void process(void *arg) {
-  int status;
+  int status, idx;
   Processed *to_work = (Processed *)arg;
-  while ((status = pthread_mutex_trylock(&to_work->mut)) == EBUSY) {
-    sleep(1);
-  }
-  if (status != 0)
-    err_abort(status, "Mutex trylock");
+  pthread_trylock_buffer(&to_work->mut);
   to_work->num_rows++;
+
+  if ((idx = get_map_index(to_work->cur_name, to_work->map_ref)) == -1) {
+    unsigned long hashval = hash(to_work->cur_name);
+    add_to_map(to_work->map_ref, hashval, to_work->cur_name);
+  }
   pthread_mutex_unlock(&to_work->mut);
 }
