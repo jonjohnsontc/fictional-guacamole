@@ -118,7 +118,7 @@ void add_to_map(HashEntry map[], long hashval, char *name) {
 // shared structure and increment a counter
 typedef struct {
   int num_rows;
-  char cur_name[WORD_SIZE];
+  char buffer[WORD_SIZE];
   HashEntry *map_ref;
   pthread_mutex_t mut;
 } Processed;
@@ -141,7 +141,7 @@ int main(void) {
   FILE *file = fopen(MEASUREMENTS_FILE, "r");
   while (fgets(buf, sizeof(buf), file) != NULL) {
     pthread_trylock_buffer(&rows.mut);
-    strcpy(rows.cur_name, buf);
+    strcpy(rows.buffer, buf);
     pthread_mutex_unlock(&rows.mut);
     // Enqueue line in work
     void *to_work = &rows;
@@ -159,13 +159,16 @@ int main(void) {
 
 void process(void *arg) {
   int idx;
+  float temp;
+  char name[WORD_SIZE];
   Processed *to_work = (Processed *)arg;
   pthread_trylock_buffer(&to_work->mut);
   to_work->num_rows++;
+  sscanf(to_work->buffer, "%[^;];%f", name, &temp);
 
-  if ((idx = get_map_index(to_work->cur_name, to_work->map_ref)) == -1) {
-    unsigned long hashval = hash(to_work->cur_name);
-    add_to_map(to_work->map_ref, hashval, to_work->cur_name);
+  if ((idx = get_map_index(to_work->buffer, to_work->map_ref)) == -1) {
+    unsigned long hashval = hash(to_work->buffer);
+    add_to_map(to_work->map_ref, hashval, name);
   } else {
     pthread_trylock_buffer(&to_work->map_ref[idx].mutex);
     to_work->map_ref[idx].count++;
