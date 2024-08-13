@@ -107,7 +107,6 @@ void add_to_map(HashEntry map[], long hashval, char *name) {
     }
   }
   // Let's lock the thread for the entry, so nobody else can touch it
-  int status;
   pthread_trylock_buffer(&map[hashval].mutex);
   strcpy(map[hashval].key, name);
   map[hashval].in_use = true;
@@ -126,8 +125,8 @@ typedef struct {
 // TODO: Now, I want to put a lock with the map, and use that to add in cities
 void process(void *arg);
 int main(void) {
-  // static HashEntry map[MAX_ENTRIES];
-  Processed rows = {0, PTHREAD_MUTEX_INITIALIZER};
+  static HashEntry map[MAX_ENTRIES];
+  Processed rows = {0, "", map, PTHREAD_MUTEX_INITIALIZER};
   char buf[BUF_SIZE];
   // _SC_NPROCESSORS_ONLN is the number of currently available procs
   size_t num_threads = (size_t)sysconf(_SC_NPROCESSORS_CONF) / 2;
@@ -156,7 +155,7 @@ int main(void) {
 }
 
 void process(void *arg) {
-  int status, idx;
+  int idx;
   Processed *to_work = (Processed *)arg;
   pthread_trylock_buffer(&to_work->mut);
   to_work->num_rows++;
