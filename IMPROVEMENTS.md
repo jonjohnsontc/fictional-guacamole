@@ -12,6 +12,10 @@ I'm going to use this document to track where I'd like to make improvements to t
 
 ## Try to use threading
 
+### After a test attempt counting city frequency with threads
+
+### Initial Thoughts
+
 After learning of the pretty poor support for C11 threads cross platform, I think I'm just going to use posix threads for the attempt. Eventually, I may add support for Windows threads, but there's not a particularly big pull to do that yet.
 
 Right now, I'm reading through Programming with POSIX Threads until I get a good enough understanding to work my own example. I'm digging into condition variables specifically, and wondering if I'll need to use them at all.
