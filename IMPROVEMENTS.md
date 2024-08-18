@@ -14,6 +14,39 @@ I'm going to use this document to track where I'd like to make improvements to t
 
 ### After a test attempt counting city frequency with threads
 
+I have implemented a basic threaded script that walks through the input file in a reader thread, and then uses threading to count each row. It's really slow, and I think it's because of a few reasons:
+
+- threads seem to spend most of their time waiting
+  - the threads all wait on the buffer while their reading in their input
+- the threaded process is extremely trivial
+  - it's a simple add, there's no reason that operation would be given to a thread in a real-world scenario
+  - the overhead associated with the threadpool probably takes longer than the time the threads processing function does any work related to the problem
+
+### A second approach with mmap
+
+I'm thinking that leveraging mmap as well as threads would allow me to better shape the problem for threads.
+
+I think to parallelize the problem better, I'd have to read the file in parallel and operate using `nthreads` number of streams to the file. If I mmap the input file, I can just copy `nthreads` number of pointers and have them operate on contiguous regions of it.
+
+- statically allocate space for structure which holds data. Made up of:
+  - array for data
+  - hash-array for hashmap for O(1) access to data
+- Initialize N number of threads
+- mmap input file
+- divide memory region into 10 contiguous regions, each delimited/ended with a newline character
+- start each thread with function that operates over its memory region using a shared hashmap with mutex locked keys
+- compute and print final result in main thread
+
+#### Looking at an initial result
+
+So, I took the code from 2th, and exchanged the components that read in the input file with ones that dealt with a super large character string after memory mapping it from a file.
+
+Wow, does it run slow...
+
+Operating against the 1m row sample file, it came with a `real` time of 50.984s. I have it running against the billion row file, as I figured memory mapping a smaller file might come with some overhead that is more manageable with larger files, but performance is so bad I'm considering just stopping it.
+
+I did stop it at 28m15s without any result
+
 ### Initial Thoughts
 
 After learning of the pretty poor support for C11 threads cross platform, I think I'm just going to use posix threads for the attempt. Eventually, I may add support for Windows threads, but there's not a particularly big pull to do that yet.

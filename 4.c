@@ -1,5 +1,5 @@
 /*
-  Threaded variant. Steps I want to hit are
+  Threaded variant. Steps I want to hit are:
 
   - Create structure to hold all cities (likely one that preserves lexical order
 (bi-tree, etc),)

@@ -1,15 +1,24 @@
 /*
-    A take on the baseline approach by using a binary tree instead
-    of an array. Still executed in a single thread. I'm also adding
-    a hashmap to speed up lookup to O(1).
-*/
+ * Memory mapping the current/fastest implementation (2th.c)
+ */
+#include <fcntl.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
+#include <unistd.h>
+
 #define BUF_SIZE 1024
 #define WORD_SIZE 256
 #define MAX_ENTRIES 100000
+#define err_abort(code, text)                                                  \
+  do {                                                                         \
+    fprintf(stderr, "%s at \"%s\":%d:%s\n", text, __FILE__, __LINE__,          \
+            strerror(code));                                                   \
+    abort();                                                                   \
+  } while (0)
 
 typedef struct node {
   char name[WORD_SIZE];
@@ -130,16 +139,29 @@ void add_to_map(HashEntry map[], node *node, long hashval, char *name) {
 }
 
 int main(void) {
-  char buf[BUF_SIZE];
   char name[WORD_SIZE];
   static HashEntry map[MAX_ENTRIES];
   node *r = NULL, *n = NULL, *f = NULL;
   float temp;
   long hashval;
   unsigned cur = 0;
-  FILE *file = fopen("./measurements_100m.txt", "r");
-  while (fgets(buf, sizeof(buf), file) != NULL) {
-    sscanf(buf, "%[^;];%f", name, &temp);
+  int fd, chars_read;
+  off_t size;
+  char *addr;
+
+  fd = open("./measurements_1b.txt", O_RDONLY);
+  if (fd == -1)
+    err_abort(fd, "file open");
+
+  size = lseek(fd, 0, SEEK_END);
+  if (size == -1)
+    err_abort(size, "lseek");
+
+  addr = mmap(NULL, size, PROT_READ, MAP_SHARED, fd, 0);
+  if (*addr == -1)
+    err_abort(*addr, "mmap");
+
+  while (sscanf(addr, "%[^;];%f\n%n", name, &temp, &chars_read) != EOF) {
     if ((f = find_node(map, r, name)) != NULL) {
       f->count++;
       f->max = max(f->max, temp);
@@ -152,10 +174,19 @@ int main(void) {
       r = insert_node(r, n);
       cur++;
     }
+    addr += chars_read;
   }
+  if (ferror((FILE *)addr) != 0)
+    err_abort(-1, "sscanf");
+
+  // FILE *file = fopen("./measurements_100m.txt", "r");
+  // while (fgets(buf, sizeof(buf), file) != NULL) {
+  // sscanf(buf, "%[^;];%f", name, &temp);
+  // }
   printf("{");
   print_node(r, &cur);
   printf("}\n");
   free_tree(r);
+  close(fd);
   return 0;
 }
