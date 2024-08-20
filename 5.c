@@ -146,20 +146,26 @@ int main(void) {
   long hashval;
   unsigned cur = 0;
   int fd, chars_read;
-  off_t size;
+  struct stat sb;
+  size_t size;
   char *addr;
 
-  fd = open("./measurements_1b.txt", O_RDONLY);
+  fd = open("./measurements_1m.txt", O_RDONLY);
   if (fd == -1)
     err_abort(fd, "file open");
 
-  size = lseek(fd, 0, SEEK_END);
+  if (fstat(fd, &sb) == -1)
+    err_abort(-1, "fstat");
+  size = (size_t)sb.st_size;
+  // size = lseek(fd, 0, SEEK_END);
   if (size == -1)
     err_abort(size, "lseek");
 
   addr = mmap(NULL, size, PROT_READ, MAP_SHARED, fd, 0);
   if (*addr == -1)
     err_abort(*addr, "mmap");
+
+  printf("mmapped input file\n");
 
   while (sscanf(addr, "%[^;];%f\n%n", name, &temp, &chars_read) != EOF) {
     if ((f = find_node(map, r, name)) != NULL) {
@@ -179,10 +185,6 @@ int main(void) {
   if (ferror((FILE *)addr) != 0)
     err_abort(-1, "sscanf");
 
-  // FILE *file = fopen("./measurements_100m.txt", "r");
-  // while (fgets(buf, sizeof(buf), file) != NULL) {
-  // sscanf(buf, "%[^;];%f", name, &temp);
-  // }
   printf("{");
   print_node(r, &cur);
   printf("}\n");

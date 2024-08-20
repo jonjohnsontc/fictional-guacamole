@@ -137,7 +137,7 @@ int main(void) {
   float temp;
   long hashval;
   unsigned cur = 0;
-  FILE *file = fopen("./measurements_100m.txt", "r");
+  FILE *file = fopen("./measurements_1m.txt", "r");
   while (fgets(buf, sizeof(buf), file) != NULL) {
     sscanf(buf, "%[^;];%f", name, &temp);
     if ((f = find_node(map, r, name)) != NULL) {
