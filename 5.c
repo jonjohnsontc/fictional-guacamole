@@ -140,17 +140,16 @@ void add_to_map(HashEntry map[], node *node, long hashval, char *name) {
 }
 
 int main(void) {
-  char name[WORD_SIZE];
+  char name[WORD_SIZE], temp_container[10];
   static HashEntry map[MAX_ENTRIES];
   node *r = NULL, *n = NULL, *f = NULL;
   float temp;
-  long hashval;
   unsigned cur = 0;
-  int fd, chars_read;
+  int fd;
   size_t size;
   char *addr, *end;
 
-  fd = open("./measurements_1m.txt", O_RDONLY);
+  fd = open("./measurements_1b.txt", O_RDONLY);
   if (fd == -1)
     err_abort(fd, "file open");
 
@@ -163,38 +162,35 @@ int main(void) {
     err_abort(*addr, "mmap");
   printf("mmapped input file\n");
 
-  end = addr+size;
+  end = addr + size;
   while (addr < end) {
-    
-    // Hashname
+
+    // reset containers for name and temp values
+    memset(name, 0, WORD_SIZE);
+    memset(temp_container, 0, 10);
+
+    // hashname
     unsigned int hashval = 5381;
     unsigned int len = 0;
     while (*addr != ';') {
-      hashval = ((hashval << 5) + hashval) + addr; 
+      hashval = ((hashval << 5) + hashval) + *addr;
       name[len++] = *addr++;
     }
-    
+
     // advance past ;
     addr++;
 
+    // reset length var to use for temperature value
+    len = 0;
     // get temperature
-    while ()
-
-    if ((f = find_node(map, r, name)) != NULL) {
-      f->count++;
-      f->max = max(f->max, temp);
-      f->min = min(f->min, temp);
-      f->sum += temp; 
-    } else {
-      hashval = hash(name);
-      n = create_node(name, temp);
-      add_to_map(map, n, hashval, name);
-      r = insert_node(r, n);
-      cur++; 
+    while (*addr != '\n') {
+      temp_container[len++] = *addr++;
     }
+    temp = atof(temp_container);
 
-  }
-  while (sscanf(addr, "%[^;];%f\n%n", name, &temp, &chars_read) != EOF) {
+    // Skip past endline
+    addr++;
+
     if ((f = find_node(map, r, name)) != NULL) {
       f->count++;
       f->max = max(f->max, temp);
@@ -207,11 +203,7 @@ int main(void) {
       r = insert_node(r, n);
       cur++;
     }
-    addr += chars_read;
   }
-  if (ferror((FILE *)addr) != 0)
-    err_abort(-1, "sscanf");
-
   printf("{");
   print_node(r, &cur);
   printf("}\n");
