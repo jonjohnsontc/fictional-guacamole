@@ -13,6 +13,7 @@
 #define BUF_SIZE 1024
 #define WORD_SIZE 256
 #define MAX_ENTRIES 100000
+#define HASHVAL 5381
 #define err_abort(code, text)                                                  \
   do {                                                                         \
     fprintf(stderr, "%s at \"%s\":%d:%s\n", text, __FILE__, __LINE__,          \
@@ -146,27 +147,53 @@ int main(void) {
   long hashval;
   unsigned cur = 0;
   int fd, chars_read;
-  struct stat sb;
   size_t size;
-  char *addr;
+  char *addr, *end;
 
   fd = open("./measurements_1m.txt", O_RDONLY);
   if (fd == -1)
     err_abort(fd, "file open");
 
-  if (fstat(fd, &sb) == -1)
-    err_abort(-1, "fstat");
-  size = (size_t)sb.st_size;
-  // size = lseek(fd, 0, SEEK_END);
+  size = lseek(fd, 0, SEEK_END);
   if (size == -1)
     err_abort(size, "lseek");
 
   addr = mmap(NULL, size, PROT_READ, MAP_SHARED, fd, 0);
   if (*addr == -1)
     err_abort(*addr, "mmap");
-
   printf("mmapped input file\n");
 
+  end = addr+size;
+  while (addr < end) {
+    
+    // Hashname
+    unsigned int hashval = 5381;
+    unsigned int len = 0;
+    while (*addr != ';') {
+      hashval = ((hashval << 5) + hashval) + addr; 
+      name[len++] = *addr++;
+    }
+    
+    // advance past ;
+    addr++;
+
+    // get temperature
+    while ()
+
+    if ((f = find_node(map, r, name)) != NULL) {
+      f->count++;
+      f->max = max(f->max, temp);
+      f->min = min(f->min, temp);
+      f->sum += temp; 
+    } else {
+      hashval = hash(name);
+      n = create_node(name, temp);
+      add_to_map(map, n, hashval, name);
+      r = insert_node(r, n);
+      cur++; 
+    }
+
+  }
   while (sscanf(addr, "%[^;];%f\n%n", name, &temp, &chars_read) != EOF) {
     if ((f = find_node(map, r, name)) != NULL) {
       f->count++;
