@@ -182,6 +182,7 @@ int main(void) {
 
     // reset length var to use for temperature value
     len = 0;
+
     // get temperature
     while (*addr != '\n') {
       temp_container[len++] = *addr++;
