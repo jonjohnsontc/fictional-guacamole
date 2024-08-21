@@ -94,7 +94,8 @@ long get_map_index(char *name, HashEntry map[]) {
   return -1;
 }
 
-struct node *find_node(HashEntry map[], struct node *head, char *name) {
+struct node *find_node(HashEntry map[], struct node *head,
+                                     char *name) {
   int idx;
   if ((idx = get_map_index(name, map)) == -1)
     return NULL;
@@ -126,7 +127,8 @@ float min(float a, float b) {
     return b;
 }
 
-void add_to_map(HashEntry map[], node *node, long hashval, char *name) {
+void add_to_map(HashEntry map[], node *node, long hashval,
+                              char *name) {
   while (map[hashval].in_use == true) {
     hashval++;
     if (hashval > MAX_ENTRIES) {
