@@ -4,7 +4,7 @@ I'm going to use this document to track where I'd like to make improvements to t
 
 <strike>1. Leverage the Java Library to Create sample measurements</strike>
 2. Try to use threading
-3. mmap the input file
+<strike>3. mmap the input file</strike>
 4. use simd to calculate measurements
 <strike>5. fix output</strike>
 <strike>6. No allocations</strike>
@@ -46,6 +46,8 @@ Wow, does it run slow...
 Operating against the 1m row sample file, it came with a `real` time of 50.984s. I have it running against the billion row file, as I figured memory mapping a smaller file might come with some overhead that is more manageable with larger files, but performance is so bad I'm considering just stopping it.
 
 I did stop it at 28m15s without any result
+
+**EDIT** After doing some google searching, it turns out that sscanf will scan the entire string before it adds the values to the variables it's been given, which explains why it had been running so slow.
 
 ### Initial Thoughts
 
