@@ -3,7 +3,7 @@
 I'm going to use this document to track where I'd like to make improvements to the runtime/processing of the measurements:
 
 <strike>1. Leverage the Java Library to Create sample measurements</strike>
-2. Try to use threading
+<strike>2. Try to use threading</strike>
 <strike>3. mmap the input file</strike>
 4. use simd to calculate measurements
 <strike>5. fix output</strike>

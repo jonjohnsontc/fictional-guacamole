@@ -60,6 +60,7 @@ float max(float a, float b);
 int cmp(const void *ptr_a, const void *ptr_b);
 unsigned int *get_key(Group *row_grouping, char *name);
 void *process_rows(void *data);
+
 int main(int argc, char *argv[]) {
   int fd, num_threads;
   char *addr;
