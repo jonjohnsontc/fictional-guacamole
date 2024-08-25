@@ -68,6 +68,7 @@ typedef struct group {
 
 float min(float a, float b);
 float max(float a, float b);
+int cmp(const void *ptr_a, const void *ptr_b);
 unsigned int *get_key(Group *row_grouping, char *name);
 void *process_rows(void *data);
 int main(int argc, char *argv[]) {
@@ -129,6 +130,14 @@ int main(int argc, char *argv[]) {
     }
   }
 
+  qsort(combined->rows, combined->size, sizeof(*combined->rows), cmp);
+  printf("{");
+  for (unsigned int i = 0; i < combined->size; i++) {
+    printf("%s=%.1f/%.1f/%.1f%s", combined->rows[i].name, combined->rows[i].min,
+           combined->rows[i].sum / combined->rows[i].count,
+           combined->rows[i].max, ", ");
+  }
+  printf("}\n");
   return 0;
 }
 
@@ -137,7 +146,7 @@ void *process_rows(void *_data) {
 
   Group *results = malloc(sizeof(*results));
   if (results == NULL)
-    err_abort(-1, "malloc");
+    err_abort(ENOMEM, "malloc");
 
   results->size = 0;
   memset(results->map, 0, HASHMAP_CAPACITY * sizeof(*results->map));
@@ -242,4 +251,8 @@ float min(float a, float b) {
     return a;
   else
     return b;
+}
+
+int cmp(const void *ptr_a, const void *ptr_b) {
+  return strcmp(((Node *)ptr_a)->name, ((Node *)ptr_b)->name);
 }
