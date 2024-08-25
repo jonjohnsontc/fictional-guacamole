@@ -24,6 +24,7 @@ implementation in terms of structure, and how data is processed in each thread
 https://github.com/dannyvankooten/1brc/blob/main/analyze.c
 
 */
+#include <errno.h>
 #include <fcntl.h>
 #include <pthread.h>
 #include <stdatomic.h>
@@ -105,6 +106,8 @@ int main(int argc, char *argv[]) {
       err_abort(res, "pthread_join");
   }
 
+  munmap((void *)addr, size);
+
   // merge results
   return 0;
 }
@@ -143,27 +146,25 @@ void *process_rows(void *_data) {
       // let's hash the city name until we find the delimeter ';'
       unsigned int len = 0;
       unsigned int hash = 0;
-      while ((*start + len) != ';') {
-        hash = ((hash << 5) + hash) + (*start + len);
+      while (*start != ';') {
+        hash = ((hash << 5) + hash) + *start++;
         len++;
       }
+
+      // advance past ';'
+      start++;
 
       // parse the temperature value
       unsigned int temp_len = 0;
       char temp_container[10];
-      while ((*start + len) != '\n') {
-        temp_container[temp_len++] = (*start + len);
-        len++;
+      while (*start != '\n') {
+        temp_container[temp_len++] = *start++;
       }
-
-      start += len;
 
       // NOTE: first time using this, last time used atof
       float d = strtod(temp_container, NULL);
-      if (d == 0)
-        err_abort(-1, "strtod");
-
-      start += temp_len;
+      if (d == 0 && errno != 0)
+        err_abort(errno, "strtod");
 
       // skip past newline '\n'
       start++;
