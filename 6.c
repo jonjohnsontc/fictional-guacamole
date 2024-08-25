@@ -8,17 +8,6 @@ and operate using `nthreads` number of streams to the file. If I mmap the input
 file, I can just copy `nthreads` number of pointers and have them operate on
 contiguous regions of it.
 
-- statically allocate space for structure which holds data. Made up of:
-  - array for data
-  - hash-array for hashmap for O(1) access to data
-- Initialize N number of threads
-- mmap input file
-- divide memory region into N contiguous regions, each delimited/ended with a
-newline character
-- compute statistics for each region, and return pointer to results in memory
-- merge all results in single thread
-- compute and print final result in main thread
-
 Much of this is copied from Github user Danny van Kooten's analyze.c
 implementation in terms of structure, and how data is processed in each thread
 https://github.com/dannyvankooten/1brc/blob/main/analyze.c
@@ -42,7 +31,7 @@ https://github.com/dannyvankooten/1brc/blob/main/analyze.c
 #define MAX_ENTRIES 100000
 #define HASHMAP_CAPACITY 16384
 #define HASHMAP_INDEX(h) (h & (HASHMAP_CAPACITY - 1))
-#define MEASUREMENTS_FILE "./measurements_1m.txt"
+#define MEASUREMENTS_FILE "./measurements_1b.txt"
 #define err_abort(code, text)                                                  \
   do {                                                                         \
     fprintf(stderr, "%s at \"%s\":%d:%s\n", text, __FILE__, __LINE__,          \
@@ -174,7 +163,7 @@ void *process_rows(void *_data) {
 
       // let's hash the city name until we find the delimeter ';'
       unsigned int len = 0;
-      unsigned int hash = 0;
+      unsigned int hash = 5381;
       while (*start != ';') {
         hash = ((hash << 5) + hash) + *start++;
         len++;
@@ -224,10 +213,11 @@ void *process_rows(void *_data) {
 }
 
 unsigned int *get_key(Group *row_grouping, char *name) {
-  unsigned int hash = 0;
+  unsigned int hash = 5381;
   unsigned int len = 0;
-  while (name[len] != '\0') {
-    hash = ((hash << 5) + hash) + (*name + len);
+  char *cur = name;
+  while (*cur != '\0') {
+    hash = ((hash << 5) + hash) + *cur++;
     len++;
   }
 

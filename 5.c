@@ -149,7 +149,7 @@ int main(void) {
   size_t size;
   char *addr, *end;
 
-  fd = open("./measurements_1b.txt", O_RDONLY);
+  fd = open("./measurements_1m.txt", O_RDONLY);
   if (fd == -1)
     err_abort(fd, "file open");
 
