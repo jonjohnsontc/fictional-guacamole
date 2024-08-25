@@ -64,6 +64,8 @@ typedef struct group {
   Node rows[MAX_ENTRIES];
 } Group;
 
+float min(float a, float b);
+float max(float a, float b);
 void *process_rows(void *data);
 int main(int argc, char *argv[]) {
   int fd, num_threads;
@@ -127,9 +129,10 @@ void *process_rows(void *_data) {
     size_t chunk_start = chunk * chunk_size;
     size_t chunk_end = chunk_start + chunk_size;
 
-    char *start = chunk_start > 0
-                      ? (char *)memchr(&data[chunk_start], '\n', chunk_size) + 1
-                      : &data[chunk_start];
+    const char *start =
+        chunk_start > 0
+            ? (char *)memchr(&data[chunk_start], '\n', chunk_size) + 1
+            : &data[chunk_start];
 
     // find pointer to last newline char, assumes file ends in a newline
     const char *end = (char *)memchr(&data[chunk_end], '\n', chunk_size) + 1;
@@ -140,19 +143,27 @@ void *process_rows(void *_data) {
       // let's hash the city name until we find the delimeter ';'
       unsigned int len = 0;
       unsigned int hash = 0;
-      while (*start != ';') {
-        hash = ((hash << 5) + hash) + *start++;
+      while ((*start + len) != ';') {
+        hash = ((hash << 5) + hash) + (*start + len);
         len++;
       }
 
+      // parse the temperature value
+      unsigned int temp_len = 0;
       char temp_container[10];
-      while (*start != '\n') {
-        temp_container[len++] = *start++;
+      while ((*start + len) != '\n') {
+        temp_container[temp_len++] = (*start + len);
+        len++;
       }
+
+      start += len;
+
       // NOTE: first time using this, last time used atof
-      float d = strtod(temp_container, &start);
+      float d = strtod(temp_container, NULL);
       if (d == 0)
         err_abort(-1, "strtod");
+
+      start += temp_len;
 
       // skip past newline '\n'
       start++;
@@ -171,7 +182,27 @@ void *process_rows(void *_data) {
         memcpy(results->rows[*loc].name, line_start, len);
         results->size++;
       }
+
+      // existing entries
+      results->rows[*loc].count += 1;
+      results->rows[*loc].min = min(results->rows[*loc].min, d);
+      results->rows[*loc].max = max(results->rows[*loc].max, d);
+      results->rows[*loc].sum += d;
     }
   }
-  return results;
+  return (void *)results;
+}
+
+float max(float a, float b) {
+  if (a > b)
+    return a;
+  else
+    return b;
+}
+
+float min(float a, float b) {
+  if (a < b)
+    return a;
+  else
+    return b;
 }
