@@ -33,6 +33,7 @@ https://github.com/dannyvankooten/1brc/blob/main/analyze.c
 #include <stdlib.h>
 #include <string.h>
 #include <sys/mman.h>
+#include <sys/types.h>
 #include <time.h>
 #include <unistd.h>
 #define BUF_SIZE 256
@@ -67,6 +68,7 @@ typedef struct group {
 
 float min(float a, float b);
 float max(float a, float b);
+unsigned int *get_key(Group *row_grouping, char *name);
 void *process_rows(void *data);
 int main(int argc, char *argv[]) {
   int fd, num_threads;
@@ -109,6 +111,24 @@ int main(int argc, char *argv[]) {
   munmap((void *)addr, size);
 
   // merge results
+  Group *combined = results[0];
+  for (size_t i = 0; i < num_threads; i++) {
+    for (unsigned int j = 0; j < results[i]->size; j++) {
+      Node *b = &results[i]->rows[j];
+      unsigned int *hm_entry = get_key(combined, b->name);
+      unsigned int c = *hm_entry;
+      if (c == 0) {
+        c = combined->size++;
+        *hm_entry = c;
+        strcpy(combined->rows[c].name, b->name);
+      }
+      combined->rows[c].count += b->count;
+      combined->rows[c].sum += b->sum;
+      combined->rows[c].min = min(combined->rows[c].min, b->min);
+      combined->rows[c].max = max(combined->rows[c].max, b->max);
+    }
+  }
+
   return 0;
 }
 
@@ -192,6 +212,22 @@ void *process_rows(void *_data) {
     }
   }
   return (void *)results;
+}
+
+unsigned int *get_key(Group *row_grouping, char *name) {
+  unsigned int hash = 0;
+  unsigned int len = 0;
+  while (name[len] != '\0') {
+    hash = ((hash << 5) + hash) + (*name + len);
+    len++;
+  }
+
+  unsigned int *c = &row_grouping->map[HASHMAP_INDEX(hash)];
+  while (*c > 0 && memcmp(row_grouping->rows[*c].name, name, len) != 0) {
+    hash++;
+    c = &row_grouping->map[HASHMAP_INDEX(hash)];
+  }
+  return c;
 }
 
 float max(float a, float b) {
