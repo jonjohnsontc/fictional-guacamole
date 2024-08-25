@@ -19,8 +19,11 @@ newline character
 - merge all results in single thread
 - compute and print final result in main thread
 
+Much of this is copied from Github user Danny van Kooten's analyze.c
+implementation in terms of structure, and how data is processed in each thread
+https://github.com/dannyvankooten/1brc/blob/main/analyze.c
+
 */
-#include <errno.h>
 #include <fcntl.h>
 #include <pthread.h>
 #include <stdatomic.h>
@@ -33,7 +36,7 @@ newline character
 #include <unistd.h>
 #define BUF_SIZE 256
 #define WORD_SIZE 100
-#define MAX_THREADS 24
+#define MAX_THREADS 24 // TODO: capture num of threads during compilation
 #define MAX_ENTRIES 100000
 #define HASHMAP_CAPACITY 16384
 #define HASHMAP_INDEX(h) (h & (HASHMAP_CAPACITY - 1))
@@ -61,11 +64,12 @@ typedef struct group {
   Node rows[MAX_ENTRIES];
 } Group;
 
+void *process_rows(void *data);
 int main(int argc, char *argv[]) {
-  int fd;
+  int fd, num_threads;
   char *addr;
   size_t size;
-  fd = open("./measurements_1b.txt", O_RDONLY);
+  fd = open(MEASUREMENTS_FILE, O_RDONLY);
   if (fd == -1)
     err_abort(fd, "file open");
 
@@ -76,7 +80,98 @@ int main(int argc, char *argv[]) {
   addr = mmap(NULL, size, PROT_READ, MAP_SHARED, fd, 0);
   if (*addr == -1)
     err_abort(*addr, "mmap");
-  printf("mmapped input file\n");
 
+  num_threads = sysconf(_SC_NPROCESSORS_CONF) / 2;
+  if (num_threads == -1)
+    err_abort(num_threads, "sysconf");
+  if (num_threads > MAX_THREADS)
+    num_threads = MAX_THREADS;
+
+  // Calculate results
+  pthread_t workers[MAX_THREADS];
+  chunk_size = (size / (num_threads * 2));
+  chunk_count = (size / chunk_size - 1) + 1;
+  for (size_t i = 0; i < num_threads; i++) {
+    pthread_create(&workers[i], NULL, process_rows, addr);
+  }
+
+  // wait for all threads to finish
+  Group *results[MAX_THREADS];
+  for (size_t i = 0; i < num_threads; i++) {
+    int res = pthread_join(workers[i], (void *)&results[i]);
+    if (res < 0)
+      err_abort(res, "pthread_join");
+  }
+
+  // merge results
   return 0;
+}
+
+void *process_rows(void *_data) {
+  char *data = (char *)_data;
+
+  Group *results = malloc(sizeof(*results));
+  if (results == NULL)
+    err_abort(-1, "malloc");
+
+  results->size = 0;
+  memset(results->map, 0, HASHMAP_CAPACITY * sizeof(*results->map));
+  memset(results->rows, 0, MAX_ENTRIES * sizeof(*results->rows));
+
+  // process data until done
+  while (1) {
+    const unsigned int chunk = chunk_selector++;
+    if (chunk >= chunk_count)
+      break;
+
+    size_t chunk_start = chunk * chunk_size;
+    size_t chunk_end = chunk_start + chunk_size;
+
+    char *start = chunk_start > 0
+                      ? (char *)memchr(&data[chunk_start], '\n', chunk_size) + 1
+                      : &data[chunk_start];
+
+    // find pointer to last newline char, assumes file ends in a newline
+    const char *end = (char *)memchr(&data[chunk_end], '\n', chunk_size) + 1;
+
+    while (start < end) {
+      const char *line_start = start;
+
+      // let's hash the city name until we find the delimeter ';'
+      unsigned int len = 0;
+      unsigned int hash = 0;
+      while (*start != ';') {
+        hash = ((hash << 5) + hash) + *start++;
+        len++;
+      }
+
+      char temp_container[10];
+      while (*start != '\n') {
+        temp_container[len++] = *start++;
+      }
+      // NOTE: first time using this, last time used atof
+      float d = strtod(temp_container, &start);
+      if (d == 0)
+        err_abort(-1, "strtod");
+
+      // skip past newline '\n'
+      start++;
+
+      // try and find name in hashmap
+      unsigned int *loc = &results->map[HASHMAP_INDEX(hash)];
+      while (*loc > 0 &&
+             memcmp(results->rows[*loc].name, line_start, len) != 0) {
+        hash += 1;
+        loc = &results->map[HASHMAP_INDEX(hash)];
+      }
+
+      // if unseen (0) we make a new entry
+      if (*loc == 0) {
+        *loc = results->size;
+        memcpy(results->rows[*loc].name, line_start, len);
+        results->size++;
+      }
+    }
+  }
+  return results;
 }
