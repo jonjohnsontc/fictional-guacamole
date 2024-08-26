@@ -31,7 +31,7 @@ https://github.com/dannyvankooten/1brc/blob/main/analyze.c
 #define MAX_ENTRIES 100000
 #define HASHMAP_CAPACITY 16384
 #define HASHMAP_INDEX(h) (h & (HASHMAP_CAPACITY - 1))
-#define MEASUREMENTS_FILE "./measurements_1b.txt"
+#define MEASUREMENTS_FILE "./measurements_100m.txt"
 #define err_abort(code, text)                                                  \
   do {                                                                         \
     fprintf(stderr, "%s at \"%s\":%d:%s\n", text, __FILE__, __LINE__,          \
@@ -189,7 +189,7 @@ void *process_rows(void *_data) {
       // NOTE: first time using this, last time used atof
       float d = strtod(temp_container, NULL);
       if (d == 0 && errno != 0)
-        err_abort(errno, "strtod");
+        errno_abort("strtod");
 
       // skip past newline '\n'
       start++;
