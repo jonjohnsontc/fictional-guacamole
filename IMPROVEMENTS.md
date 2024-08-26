@@ -2,13 +2,13 @@
 
 I'm going to use this document to track where I'd like to make improvements to the runtime/processing of the measurements:
 
-<strike>1. Leverage the Java Library to Create sample measurements</strike>
-<strike>2. Try to use threading</strike>
-<strike>3. mmap the input file</strike>
-4. use simd to calculate measurements
-<strike>5. fix output</strike>
-<strike>6. No allocations</strike>
-7. Sorting the output inclusive of special characters
+<strike>1. Leverage the Java Library to Create sample measurements</strike>  
+<strike>2. Try to use threading</strike>  
+<strike>3. mmap the input file</strike>  
+4. use simd to calculate measurements  
+<strike>5. fix output</strike>  
+<strike>6. No allocations</strike>  
+7. Sorting the output inclusive of special characters  
 
 ## Try to use threading
 

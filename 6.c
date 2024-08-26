@@ -38,6 +38,12 @@ https://github.com/dannyvankooten/1brc/blob/main/analyze.c
             strerror(code));                                                   \
     abort();                                                                   \
   } while (0)
+#define errno_abort(text)                                                      \
+  do {                                                                         \
+    fprintf(stderr, "%s at \"%s\":%d:%s\n", text, __FILE__, __LINE__,          \
+            strerror(errno));                                                  \
+    abort();                                                                   \
+  } while (0)
 
 static size_t chunk_count;
 static size_t chunk_size;
@@ -67,19 +73,19 @@ int main(int argc, char *argv[]) {
   size_t size;
   fd = open(MEASUREMENTS_FILE, O_RDONLY);
   if (fd == -1)
-    err_abort(fd, "file open");
+    errno_abort("file open");
 
   size = lseek(fd, 0, SEEK_END);
   if (size == -1)
-    err_abort(size, "lseek");
+    errno_abort("lseek");
 
   addr = mmap(NULL, size, PROT_READ, MAP_SHARED, fd, 0);
   if (*addr == -1)
-    err_abort(*addr, "mmap");
+    errno_abort("mmap");
 
   num_threads = sysconf(_SC_NPROCESSORS_CONF) / 2;
   if (num_threads == -1)
-    err_abort(num_threads, "sysconf");
+    errno_abort("sysconf");
   if (num_threads > MAX_THREADS)
     num_threads = MAX_THREADS;
 
@@ -95,7 +101,7 @@ int main(int argc, char *argv[]) {
   Group *results[MAX_THREADS];
   for (size_t i = 0; i < num_threads; i++) {
     int res = pthread_join(workers[i], (void *)&results[i]);
-    if (res < 0)
+    if (res != 0)
       err_abort(res, "pthread_join");
   }
 
