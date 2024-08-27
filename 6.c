@@ -27,7 +27,6 @@ https://github.com/dannyvankooten/1brc/blob/main/analyze.c
 #include <unistd.h>
 #define BUF_SIZE 256
 #define WORD_SIZE 100
-#define MAX_THREADS 24 // TODO: capture num of threads during compilation
 #define MAX_ENTRIES 100000
 #define HASHMAP_CAPACITY 16384
 #define HASHMAP_INDEX(h) (h & (HASHMAP_CAPACITY - 1))
@@ -44,6 +43,9 @@ https://github.com/dannyvankooten/1brc/blob/main/analyze.c
             strerror(errno));                                                  \
     abort();                                                                   \
   } while (0)
+#ifndef NTHREADS
+#define NTHREADS 12
+#endif 
 
 static size_t chunk_count;
 static size_t chunk_size;
@@ -67,10 +69,10 @@ int cmp(const void *ptr_a, const void *ptr_b);
 unsigned int *get_key(Group *row_grouping, char *name);
 void *process_rows(void *data);
 
-int main(int argc, char *argv[]) {
-  int fd, num_threads;
+int main(void) {
+  int fd;
   char *addr;
-  size_t size;
+  long size;
   fd = open(MEASUREMENTS_FILE, O_RDONLY);
   if (fd == -1)
     errno_abort("file open");
@@ -83,23 +85,17 @@ int main(int argc, char *argv[]) {
   if (*addr == -1)
     errno_abort("mmap");
 
-  num_threads = sysconf(_SC_NPROCESSORS_CONF) / 2;
-  if (num_threads == -1)
-    errno_abort("sysconf");
-  if (num_threads > MAX_THREADS)
-    num_threads = MAX_THREADS;
-
   // Calculate results
-  pthread_t workers[MAX_THREADS];
-  chunk_size = (size / (num_threads * 2));
+  pthread_t workers[NTHREADS];
+  chunk_size = (size / (NTHREADS * 2));
   chunk_count = (size / chunk_size - 1) + 1;
-  for (size_t i = 0; i < num_threads; i++) {
+  for (size_t i = 0; i < NTHREADS; i++) {
     pthread_create(&workers[i], NULL, process_rows, addr);
   }
 
   // wait for all threads to finish
-  Group *results[MAX_THREADS];
-  for (size_t i = 0; i < num_threads; i++) {
+  Group *results[NTHREADS];
+  for (size_t i = 0; i < NTHREADS; i++) {
     int res = pthread_join(workers[i], (void *)&results[i]);
     if (res != 0)
       err_abort(res, "pthread_join");
@@ -109,7 +105,7 @@ int main(int argc, char *argv[]) {
 
   // merge results
   Group *combined = results[0];
-  for (size_t i = 0; i < num_threads; i++) {
+  for (size_t i = 0; i < NTHREADS; i++) {
     for (unsigned int j = 0; j < results[i]->size; j++) {
       Node *b = &results[i]->rows[j];
       unsigned int *hm_entry = get_key(combined, b->name);
