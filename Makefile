@@ -16,6 +16,6 @@ bin/:
 bin/main: 6.c
 		$(CC) $(CFLAGS) $^ -o bin/main
 
-.PHONY clean
+.PHONY: clean
 clean:
 		rm -r bin/

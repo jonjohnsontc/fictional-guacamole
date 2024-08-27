@@ -68,6 +68,7 @@ float max(float a, float b);
 int cmp(const void *ptr_a, const void *ptr_b);
 unsigned int *get_key(Group *row_grouping, char *name);
 void *process_rows(void *data);
+void print_data(char *buffer, Group *row_groupbing);
 
 int main(void) {
   int fd;
@@ -123,13 +124,8 @@ int main(void) {
   }
 
   qsort(combined->rows, combined->size, sizeof(*combined->rows), cmp);
-  printf("{");
-  for (unsigned int i = 0; i < combined->size; i++) {
-    printf("%s=%.1f/%.1f/%.1f%s", combined->rows[i].name, combined->rows[i].min,
-           combined->rows[i].sum / combined->rows[i].count,
-           combined->rows[i].max, ", ");
-  }
-  printf("}\n");
+  char buffer[16384];
+  print_data(buffer, combined);
   return 0;
 }
 
@@ -248,4 +244,19 @@ float min(float a, float b) {
 
 int cmp(const void *ptr_a, const void *ptr_b) {
   return strcmp(((Node *)ptr_a)->name, ((Node *)ptr_b)->name);
+}
+
+void print_data(char *buffer, Group *row_grouping) {
+  *buffer++ = '{';
+  for (unsigned int i = 0; i < row_grouping->size; i++) {
+    size_t n = (size_t)sprintf(
+      buffer, "%s=%.1f/%.1f/%.1f%s", row_grouping->rows[i].name, row_grouping->rows[i].min,
+           row_grouping->rows[i].sum / row_grouping->rows[i].count,
+           row_grouping->rows[i].max, i < (row_grouping->size -1) ? ", " : "");
+
+      buffer += n;
+  }
+  *buffer++ = '}';
+  *buffer++ = '\n';
+  *buffer++ = '\0';
 }
