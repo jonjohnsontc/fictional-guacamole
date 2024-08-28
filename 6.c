@@ -63,12 +63,12 @@ typedef struct group {
   Node rows[MAX_ENTRIES];
 } Group;
 
-float min(float a, float b);
-float max(float a, float b);
-int cmp(const void *ptr_a, const void *ptr_b);
-unsigned int *get_key(Group *row_grouping, char *name);
-void *process_rows(void *data);
-void print_data(char *buffer, Group *row_groupbing);
+static inline float min(float a, float b);
+static inline float max(float a, float b);
+static inline int cmp(const void *ptr_a, const void *ptr_b);
+static inline unsigned int *get_key(Group *row_grouping, char *name);
+static inline void *process_rows(void *data);
+static inline void print_data(char *buffer, Group *row_groupbing);
 
 int main(void) {
   int fd;
@@ -129,7 +129,7 @@ int main(void) {
   return 0;
 }
 
-void *process_rows(void *_data) {
+static inline void *process_rows(void *_data) {
   char *data = (char *)_data;
 
   Group *results = malloc(sizeof(*results));
@@ -211,7 +211,7 @@ void *process_rows(void *_data) {
   return (void *)results;
 }
 
-unsigned int *get_key(Group *row_grouping, char *name) {
+static inline unsigned int *get_key(Group *row_grouping, char *name) {
   unsigned int hash = 5381;
   unsigned int len = 0;
   char *cur = name;
@@ -228,25 +228,25 @@ unsigned int *get_key(Group *row_grouping, char *name) {
   return c;
 }
 
-float max(float a, float b) {
+static inline float max(float a, float b) {
   if (a > b)
     return a;
   else
     return b;
 }
 
-float min(float a, float b) {
+static inline float min(float a, float b) {
   if (a < b)
     return a;
   else
     return b;
 }
 
-int cmp(const void *ptr_a, const void *ptr_b) {
+static inline int cmp(const void *ptr_a, const void *ptr_b) {
   return strcmp(((Node *)ptr_a)->name, ((Node *)ptr_b)->name);
 }
 
-void print_data(char *buffer, Group *row_grouping) {
+static inline void print_data(char *buffer, Group *row_grouping) {
   *buffer++ = '{';
   for (unsigned int i = 0; i < row_grouping->size; i++) {
     size_t n = (size_t)sprintf(
