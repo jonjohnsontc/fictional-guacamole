@@ -10,6 +10,10 @@ I'm going to use this document to track where I'd like to make improvements to t
 <strike>6. No allocations</strike>  
 7. Sorting the output inclusive of special characters  
 
+## SIMD
+
+Finally, I feel ready to tackle this part of the problem. Mapping this out in my head, I think the best idea would be to work on four rows of data at a time. After I find four different nodes, I can then use intrinsics for each of the min, max, sum, and count operations.
+
 ## Try to use threading
 
 ### After a test attempt counting city frequency with threads

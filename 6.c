@@ -177,8 +177,6 @@ static inline void *process_rows(void *_data) {
       while (*start != '\n') {
         temp_container[temp_len++] = *start++;
       }
-
-      // NOTE: first time using this, last time used atof
       float d = strtod(temp_container, NULL);
       if (d == 0 && errno != 0)
         errno_abort("strtod");
