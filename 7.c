@@ -200,7 +200,7 @@ static inline void *process_rows(void *_data) {
         results->size++;
       }
 
-      nodes[node_loc++] = HASMAP_INDEX(hash);
+      nodes[node_loc++] = HASHMAP_INDEX(hash);
       // if node_loc has exceeded the number of locations / lanes available
       // that means we can process all of the data
       if (node_loc == LANES) {
@@ -214,72 +214,77 @@ static inline void *process_rows(void *_data) {
       } else
         continue;
     }
-    return (void *)results;
+  }
+  return (void *)results;
+}
+
+static inline unsigned int *get_key(Group *row_grouping, char *name) {
+  unsigned int hash = 5381;
+  unsigned int len = 0;
+  char *cur = name;
+  while (*cur != '\0') {
+    hash = ((hash << 5) + hash) + *cur++;
+    len++;
   }
 
-  static inline unsigned int *get_key(Group * row_grouping, char *name) {
-    unsigned int hash = 5381;
-    unsigned int len = 0;
-    char *cur = name;
-    while (*cur != '\0') {
-      hash = ((hash << 5) + hash) + *cur++;
-      len++;
-    }
-
-    unsigned int *c = &row_grouping->map[HASHMAP_INDEX(hash)];
-    while (*c > 0 && memcmp(row_grouping->rows[*c].name, name, len) != 0) {
-      hash++;
-      c = &row_grouping->map[HASHMAP_INDEX(hash)];
-    }
-    return c;
+  unsigned int *c = &row_grouping->map[HASHMAP_INDEX(hash)];
+  while (*c > 0 && memcmp(row_grouping->rows[*c].name, name, len) != 0) {
+    hash++;
+    c = &row_grouping->map[HASHMAP_INDEX(hash)];
   }
+  return c;
+}
 
-  static inline float max(float a, float b) {
-    if (a > b)
-      return a;
-    else
-      return b;
+static inline float max(float a, float b) {
+  if (a > b)
+    return a;
+  else
+    return b;
+}
+
+static inline float min(float a, float b) {
+  if (a < b)
+    return a;
+  else
+    return b;
+}
+
+static inline int cmp(const void *ptr_a, const void *ptr_b) {
+  return strcmp(((Node *)ptr_a)->name, ((Node *)ptr_b)->name);
+}
+
+static inline void print_data(char *buffer, Group *row_grouping) {
+  *buffer++ = '{';
+  for (unsigned int i = 0; i < row_grouping->size; i++) {
+    size_t n = (size_t)sprintf(
+        buffer, "%s=%.1f/%.1f/%.1f%s", row_grouping->rows[i].name,
+        row_grouping->rows[i].min,
+        row_grouping->rows[i].sum / row_grouping->rows[i].count,
+        row_grouping->rows[i].max, i < (row_grouping->size - 1) ? ", " : "");
+
+    buffer += n;
   }
+  *buffer++ = '}';
+  *buffer++ = '\n';
+  *buffer++ = '\0';
+}
 
-  static inline float min(float a, float b) {
-    if (a < b)
-      return a;
-    else
-      return b;
-  }
+static inline void x4_count(const unsigned int nodes[LANES], Group *results) {
+  results->rows[nodes[0]].count++;
+  results->rows[nodes[1]].count++;
+  results->rows[nodes[2]].count++;
+  results->rows[nodes[3]].count++;
+}
 
-  static inline int cmp(const void *ptr_a, const void *ptr_b) {
-    return strcmp(((Node *)ptr_a)->name, ((Node *)ptr_b)->name);
-  }
-
-  static inline void print_data(char *buffer, Group *row_grouping) {
-    *buffer++ = '{';
-    for (unsigned int i = 0; i < row_grouping->size; i++) {
-      size_t n = (size_t)sprintf(
-          buffer, "%s=%.1f/%.1f/%.1f%s", row_grouping->rows[i].name,
-          row_grouping->rows[i].min,
-          row_grouping->rows[i].sum / row_grouping->rows[i].count,
-          row_grouping->rows[i].max, i < (row_grouping->size - 1) ? ", " : "");
-
-      buffer += n;
-    }
-    *buffer++ = '}';
-    *buffer++ = '\n';
-    *buffer++ = '\0';
-  }
-
-  static inline void x4_count(const unsigned int nodes[LANES], Group *results) {
-    counts[0] = results->rows[nodes[0]].count++;
-    counts[1] = results->rows[nodes[1]].count++;
-    counts[2] = results->rows[nodes[2]].count++;
-    counts[3] = results->rows[nodes[3]].count++;
-  }
-
-  static inline void x4_min(const unsigned int nodes[], Group *results) {
-    float mins[LANES] = {
-        results->rows[nodes[0]].min, results->rows[nodes[1]].min,
-        results->rows[nodes[2]].min, results->rows[nodes[3]].min};
-    __m128 loaded = _mm_loadu_ps((const float *)&mins);
-  }
-  static inline void x4_max(const unsigned int nodes[], Group *results) {}
-  static inline void x4_add(const unsigned int nodes[], Group *results) {}
+static inline void x4_min(const unsigned int nodes[], __m128 temps,
+                          Group *results) {
+  float mins[LANES] = {results->rows[nodes[0]].min, results->rows[nodes[1]].min,
+                       results->rows[nodes[2]].min,
+                       results->rows[nodes[3]].min};
+  __m128 cur_mins = _mm_loadu_ps((const float *)&mins);
+  __m128 src = _mm_set_ps(999.0, 999.0, 999.0, 999.0);
+  __m128 result = _mm_mask_min_ps(src, 0b1111, temps, cur_mins);
+  _mm_store_ps(mins, result);
+}
+static inline void x4_max(const unsigned int nodes[], Group *results) {}
+static inline void x4_add(const unsigned int nodes[], Group *results) {}
