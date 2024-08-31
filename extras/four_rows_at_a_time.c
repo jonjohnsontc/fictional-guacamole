@@ -60,7 +60,7 @@ static inline float max(float a, float b);
 static inline int cmp(const void *ptr_a, const void *ptr_b);
 static inline unsigned int *get_key(Group *row_grouping, char *name);
 static inline void *process_rows(void *data);
-static inline void print_data(char *buffer, Group *row_groupbing);
+static inline void print_data(char *buffer, Group *row_grouping);
 static inline void x4_count(const unsigned int nodes[], Group *results);
 static inline void x4_min(const unsigned int nodes[], Group *results);
 static inline void x4_max(const unsigned int nodes[], Group *results);
