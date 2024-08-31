@@ -156,7 +156,7 @@ static inline void *process_rows(void *_data) {
     // I want some way of tracking whether or not I've found the number of
     // records necessary for the simd add
     unsigned int nodes[LANES] = {0, 0, 0, 0};
-    float temps[LANES] = { 0, 0, 0, 0 };
+    float temps[LANES] = {0, 0, 0, 0};
     unsigned int node_loc = 0;
     while (start < end) {
       const char *line_start = start;
@@ -278,11 +278,8 @@ static inline void *process_rows(void *_data) {
   static inline void x4_min(const unsigned int nodes[], Group *results) {
     float mins[LANES] = {
         results->rows[nodes[0]].min, results->rows[nodes[1]].min,
-        results->rows[nodes[2]].min, results->rows[nodes[3]].min
-    };
+        results->rows[nodes[2]].min, results->rows[nodes[3]].min};
     __m128 loaded = _mm_loadu_ps((const float *)&mins);
-
-
   }
   static inline void x4_max(const unsigned int nodes[], Group *results) {}
   static inline void x4_add(const unsigned int nodes[], Group *results) {}
