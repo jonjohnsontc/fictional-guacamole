@@ -5,6 +5,7 @@
 */
 #include <errno.h>
 #include <fcntl.h>
+#include <immintrin.h>
 #include <pthread.h>
 #include <stdatomic.h>
 #include <stdbool.h>
@@ -19,6 +20,7 @@
 #define WORD_SIZE 100
 #define MAX_ENTRIES 100000
 #define HASHMAP_CAPACITY 16384
+#define LANES 4 // How many operations we're going to try and do at once
 #define HASHMAP_INDEX(h) (h & (HASHMAP_CAPACITY - 1))
 #define MEASUREMENTS_FILE "./measurements_1b.txt"
 #define err_abort(code, text)                                                  \
@@ -59,6 +61,10 @@ static inline int cmp(const void *ptr_a, const void *ptr_b);
 static inline unsigned int *get_key(Group *row_grouping, char *name);
 static inline void *process_rows(void *data);
 static inline void print_data(char *buffer, Group *row_groupbing);
+static inline void x4_count(const unsigned int nodes[], Group *results);
+static inline void x4_min(const unsigned int nodes[], Group *results);
+static inline void x4_max(const unsigned int nodes[], Group *results);
+static inline void x4_add(const unsigned int nodes[], Group *results);
 
 int main(void) {
   int fd;
@@ -147,7 +153,11 @@ static inline void *process_rows(void *_data) {
     // find pointer to last newline char, assumes file ends in a newline
     const char *end = (char *)memchr(&data[chunk_end], '\n', chunk_size) + 1;
 
-    // 
+    // I want some way of tracking whether or not I've found the number of
+    // records necessary for the simd add
+    unsigned int nodes[LANES] = {0, 0, 0, 0};
+    float temps[LANES] = { 0, 0, 0, 0 };
+    unsigned int node_loc = 0;
     while (start < end) {
       const char *line_start = start;
 
@@ -190,63 +200,89 @@ static inline void *process_rows(void *_data) {
         results->size++;
       }
 
-      // existing entries
-      results->rows[*loc].count += 1;
-      results->rows[*loc].min = min(results->rows[*loc].min, d);
-      results->rows[*loc].max = max(results->rows[*loc].max, d);
-      results->rows[*loc].sum += d;
+      nodes[node_loc++] = HASMAP_INDEX(hash);
+      // if node_loc has exceeded the number of locations / lanes available
+      // that means we can process all of the data
+      if (node_loc == LANES) {
+        x4_count(nodes, &results);
+        x4_min(nodes, &results);
+        x4_max(nodes, &results);
+        x4_add(nodes, &results);
+        // reset node location, we don't need to empty the array because
+        // we won't touch it again until the nodes have been traversed once more
+        node_loc = 0;
+      } else
+        continue;
     }
-  }
-  return (void *)results;
-}
-
-static inline unsigned int *get_key(Group *row_grouping, char *name) {
-  unsigned int hash = 5381;
-  unsigned int len = 0;
-  char *cur = name;
-  while (*cur != '\0') {
-    hash = ((hash << 5) + hash) + *cur++;
-    len++;
+    return (void *)results;
   }
 
-  unsigned int *c = &row_grouping->map[HASHMAP_INDEX(hash)];
-  while (*c > 0 && memcmp(row_grouping->rows[*c].name, name, len) != 0) {
-    hash++;
-    c = &row_grouping->map[HASHMAP_INDEX(hash)];
+  static inline unsigned int *get_key(Group * row_grouping, char *name) {
+    unsigned int hash = 5381;
+    unsigned int len = 0;
+    char *cur = name;
+    while (*cur != '\0') {
+      hash = ((hash << 5) + hash) + *cur++;
+      len++;
+    }
+
+    unsigned int *c = &row_grouping->map[HASHMAP_INDEX(hash)];
+    while (*c > 0 && memcmp(row_grouping->rows[*c].name, name, len) != 0) {
+      hash++;
+      c = &row_grouping->map[HASHMAP_INDEX(hash)];
+    }
+    return c;
   }
-  return c;
-}
 
-static inline float max(float a, float b) {
-  if (a > b)
-    return a;
-  else
-    return b;
-}
-
-static inline float min(float a, float b) {
-  if (a < b)
-    return a;
-  else
-    return b;
-}
-
-static inline int cmp(const void *ptr_a, const void *ptr_b) {
-  return strcmp(((Node *)ptr_a)->name, ((Node *)ptr_b)->name);
-}
-
-static inline void print_data(char *buffer, Group *row_grouping) {
-  *buffer++ = '{';
-  for (unsigned int i = 0; i < row_grouping->size; i++) {
-    size_t n = (size_t)sprintf(
-        buffer, "%s=%.1f/%.1f/%.1f%s", row_grouping->rows[i].name,
-        row_grouping->rows[i].min,
-        row_grouping->rows[i].sum / row_grouping->rows[i].count,
-        row_grouping->rows[i].max, i < (row_grouping->size - 1) ? ", " : "");
-
-    buffer += n;
+  static inline float max(float a, float b) {
+    if (a > b)
+      return a;
+    else
+      return b;
   }
-  *buffer++ = '}';
-  *buffer++ = '\n';
-  *buffer++ = '\0';
-}
+
+  static inline float min(float a, float b) {
+    if (a < b)
+      return a;
+    else
+      return b;
+  }
+
+  static inline int cmp(const void *ptr_a, const void *ptr_b) {
+    return strcmp(((Node *)ptr_a)->name, ((Node *)ptr_b)->name);
+  }
+
+  static inline void print_data(char *buffer, Group *row_grouping) {
+    *buffer++ = '{';
+    for (unsigned int i = 0; i < row_grouping->size; i++) {
+      size_t n = (size_t)sprintf(
+          buffer, "%s=%.1f/%.1f/%.1f%s", row_grouping->rows[i].name,
+          row_grouping->rows[i].min,
+          row_grouping->rows[i].sum / row_grouping->rows[i].count,
+          row_grouping->rows[i].max, i < (row_grouping->size - 1) ? ", " : "");
+
+      buffer += n;
+    }
+    *buffer++ = '}';
+    *buffer++ = '\n';
+    *buffer++ = '\0';
+  }
+
+  static inline void x4_count(const unsigned int nodes[LANES], Group *results) {
+    counts[0] = results->rows[nodes[0]].count++;
+    counts[1] = results->rows[nodes[1]].count++;
+    counts[2] = results->rows[nodes[2]].count++;
+    counts[3] = results->rows[nodes[3]].count++;
+  }
+
+  static inline void x4_min(const unsigned int nodes[], Group *results) {
+    float mins[LANES] = {
+        results->rows[nodes[0]].min, results->rows[nodes[1]].min,
+        results->rows[nodes[2]].min, results->rows[nodes[3]].min
+    };
+    __m128 loaded = _mm_loadu_ps((const float *)&mins);
+
+
+  }
+  static inline void x4_max(const unsigned int nodes[], Group *results) {}
+  static inline void x4_add(const unsigned int nodes[], Group *results) {}
