@@ -266,10 +266,12 @@ static inline void to_string(char *buffer, Group *row_grouping) {
 // currently using SSE intrinsics
 // have also leveraged an AVX intrinsics version that runs a little slower
 static inline void compute_stats(Node *node) {
+  // initialize some vectorized types that we can act on
   __m128 vmin = _mm_set1_ps(node->min);
   __m128 vmax = _mm_set1_ps(node->max);
   __m128 vsum = _mm_setzero_ps();
 
+  // do min max and add ops four at a time
   for (unsigned int i = 0; i < node->buf_size; i += 4) {
     __m128 vtemp = _mm_loadu_ps(&node->buffer[i]); // load next 4 floats
     vmin = _mm_min_ps(vmin, vtemp);
@@ -283,11 +285,13 @@ static inline void compute_stats(Node *node) {
   vmax = _mm_max_ps(vmax, _mm_shuffle_ps(vmax, vmax, _MM_SHUFFLE(2, 3, 0, 1)));
   vmax = _mm_max_ps(vmax, _mm_shuffle_ps(vmax, vmax, _MM_SHUFFLE(1, 0, 3, 2)));
 
+  // store results in buffers
   float min_temp, max_temp, sum_temp[4];
   _mm_store_ss(&min_temp, vmin);
   _mm_store_ss(&max_temp, vmax);
   _mm_storeu_ps(sum_temp, vsum);
 
+  // compare and/or add vector data back into node
   node->min = min(node->min, min_temp);
   node->max = max(node->max, max_temp);
   node->sum += sum_temp[0] + sum_temp[1] + sum_temp[2] + sum_temp[3];
