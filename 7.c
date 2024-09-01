@@ -263,6 +263,8 @@ static inline void to_string(char *buffer, Group *row_grouping) {
   *buffer++ = '\0';
 }
 
+// currently using SSE intrinsics
+// have also leveraged an AVX intrinsics version that runs a little slower
 static inline void compute_stats(Node *node) {
   __m128 vmin = _mm_set1_ps(node->min);
   __m128 vmax = _mm_set1_ps(node->max);
