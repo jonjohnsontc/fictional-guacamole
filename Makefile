@@ -2,7 +2,7 @@ ifndef NTHREADS
 NTHREADS=$(shell nproc --all 2>/dev/null || getconf _NPROCESSORS_ONLN)
 endif
 
-CFLAGS=-Wall -Wextra -Werror -O2 -DNTHREADS=$(NTHREADS)
+CFLAGS=-Wall -Wextra -Werror -O2 -march=native -DNTHREADS=$(NTHREADS)
 
 ifdef DEBUG
 CFLAGS+=-g
