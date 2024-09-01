@@ -24,7 +24,7 @@ vector intrinsics to process the buffer once it hits a certain size.
 #define MAX_ENTRIES 100000
 #define HASHMAP_CAPACITY 16384
 #define HASHMAP_INDEX(h) (h & (HASHMAP_CAPACITY - 1))
-#define MEASUREMENTS_FILE "./measurements_1m.txt"   // TODO: Change to 1b
+#define MEASUREMENTS_FILE "./measurements_1b.txt"
 #define err_abort(code, text)                                                  \
   do {                                                                         \
     fprintf(stderr, "%s at \"%s\":%d:%s\n", text, __FILE__, __LINE__,          \

@@ -13,7 +13,7 @@ all: bin/ bin/main
 bin/:
 		mkdir -p bin/
 
-bin/main: 7.c
+bin/main: 6.c
 		$(CC) $(CFLAGS) $^ -o bin/main
 
 .PHONY: clean
