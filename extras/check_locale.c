@@ -3,8 +3,12 @@
 #include <stdlib.h>
 #include <string.h>
 
-static inline int cmp(const void *ptr_a, const void *ptr_b) {
+static inline int collate(const void *ptr_a, const void *ptr_b) {
   return strcoll((char *)ptr_b, (char *)ptr_a);
+}
+
+static inline int cmp(const void *ptr_a, const void *ptr_b) {
+  return strcmp((char *)ptr_b, (char *)ptr_a);
 }
 
 int main(void) {
