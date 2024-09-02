@@ -3,6 +3,15 @@
 #include <stdlib.h>
 #include <string.h>
 
+/*
+
+Comparing the usage of strcmp and strcoll. strcoll should take advantage of locale
+to handle UTF-8 character sorting, but running it against a few different examples
+hasn't delivered the results I would've expected. It also appears to be 
+non-deterministic on my WSL Debian machine
+
+*/
+
 static inline int collate(const void *ptr_a, const void *ptr_b) {
   return strcoll((char *)ptr_b, (char *)ptr_a);
 }
@@ -16,12 +25,19 @@ int main(void) {
   if (res == NULL) {
     printf("Could not set locale\n");
   } else
-    printf("%s\n", res);
+    printf("locale: %s\n", res);
 
-  char *words[6] = {"İstanbul",  "Canyon",   "Fish",
-                    "Xylophone", "Zeppelin", "Ape"};
+  char *words[6] = {"Zürich",  "Ürümqi",   "Wrocław",
+                    "Oklahoma", "Pittsburgh", "Bouaké"};
   qsort(words, 6, sizeof(char *), cmp);
+  printf("strcmp order: ");
   for (int i = 0; i < 6; i++)
-    printf("%d %s\n", i, words[i]);
+    printf("%s ", words[i]);
+  printf("\n");
+
+  qsort(words, 6, sizeof(char *), collate);
+  printf("strcoll order: ");
+  for (int i = 0; i < 6; i++)
+    printf("%s ", words[i]);
   printf("\n");
 }
