@@ -79,13 +79,14 @@ void x4_pad(float **arr, unsigned int n) {
   memset(*arr + (4 - n), 0, n * sizeof(float));
 }
 
-static inline void x4_min(const unsigned int nodes[], __m128 temps,
-                          Group *results) {
-  float mins[LANES] = {results->rows[nodes[0]].min, results->rows[nodes[1]].min,
-                       results->rows[nodes[2]].min,
-                       results->rows[nodes[3]].min};
-  __m128 cur_mins = _mm_loadu_ps((const float *)&mins);
-  __m128 src = _mm_set_ps(999.0, 999.0, 999.0, 999.0);
-  __m128 result = _mm_mask_min_ps(src, 0b1111, temps, cur_mins);
-  _mm_store_ps(mins, result);
-}
+// static inline void x4_min(const unsigned int nodes[], __m128 temps,
+//                           Group *results) {
+//   float mins[LANES] = {results->rows[nodes[0]].min,
+//   results->rows[nodes[1]].min,
+//                        results->rows[nodes[2]].min,
+//                        results->rows[nodes[3]].min};
+//   __m128 cur_mins = _mm_loadu_ps((const float *)&mins);
+//   __m128 src = _mm_set_ps(999.0, 999.0, 999.0, 999.0);
+//   __m128 result = _mm_mask_min_ps(src, 0b1111, temps, cur_mins);
+//   _mm_store_ps(mins, result);
+// }
