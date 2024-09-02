@@ -18,13 +18,11 @@ https://github.com/dannyvankooten/1brc/blob/main/analyze.c
 #include <locale.h>
 #include <pthread.h>
 #include <stdatomic.h>
-#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/mman.h>
 #include <sys/types.h>
-#include <time.h>
 #include <unistd.h>
 #define BUF_SIZE 256
 #define WORD_SIZE 100
@@ -105,9 +103,9 @@ int main(void) {
   // wait for all threads to finish
   Group *results[NTHREADS];
   for (size_t i = 0; i < NTHREADS; i++) {
-    int res = pthread_join(workers[i], (void *)&results[i]);
-    if (res != 0)
-      err_abort(res, "pthread_join");
+    const int status= pthread_join(workers[i], (void *)&results[i]);
+    if (status != 0)
+      err_abort(status, "pthread_join");
   }
 
   munmap((void *)addr, size);
