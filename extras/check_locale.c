@@ -4,19 +4,20 @@
 #include <string.h>
 
 static inline int cmp(const void *ptr_a, const void *ptr_b) {
-  return strcoll((char *)ptr_a, (char *)ptr_b);
+  return strcoll((char *)ptr_b, (char *)ptr_a);
 }
 
 int main(void) {
-  char *res = setlocale(LC_ALL, "en_US.utf8");
+  char *res = setlocale(LC_COLLATE, "en_US.UTF-8");
   if (res == NULL) {
     printf("Could not set locale\n");
-  } else 
+  } else
     printf("%s\n", res);
 
-  char *words[6] = {"İstanbul", "Canyon", "fish", "xylophone", "Zeppelin", "ape"};
+  char *words[6] = {"İstanbul",  "Canyon",   "Fish",
+                    "Xylophone", "Zeppelin", "Ape"};
   qsort(words, 6, sizeof(char *), cmp);
-  for (int i = 0; i < 6; i++) 
-    printf("%d %s\n", i,words[i]);
+  for (int i = 0; i < 6; i++)
+    printf("%d %s\n", i, words[i]);
   printf("\n");
 }
