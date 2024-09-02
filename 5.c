@@ -94,7 +94,7 @@ long get_map_index(char *name, HashEntry map[]) {
   return -1;
 }
 
-struct node *find_node(HashEntry map[], struct node *head, char *name) {
+struct node *find_node(HashEntry map[], char *name) {
   int idx;
   if ((idx = get_map_index(name, map)) == -1)
     return NULL;
@@ -146,10 +146,10 @@ int main(void) {
   float temp;
   unsigned cur = 0;
   int fd;
-  size_t size;
+  off_t size;
   char *addr, *end;
 
-  fd = open("./measurements_1m.txt", O_RDONLY);
+  fd = open("./measurements_1b.txt", O_RDONLY);
   if (fd == -1)
     err_abort(fd, "file open");
 
@@ -192,7 +192,7 @@ int main(void) {
     // Skip past endline
     addr++;
 
-    if ((f = find_node(map, r, name)) != NULL) {
+    if ((f = find_node(map, name)) != NULL) {
       f->count++;
       f->max = max(f->max, temp);
       f->min = min(f->min, temp);
