@@ -44,7 +44,7 @@ https://github.com/dannyvankooten/1brc/blob/main/analyze.c
   } while (0)
 #ifndef NTHREADS
 #define NTHREADS 12
-#endif 
+#endif
 
 static size_t chunk_count;
 static size_t chunk_size;
@@ -73,7 +73,7 @@ int main(void) {
   int fd;
   char *addr;
   long size;
-  
+
   char *res = setlocale(LC_COLLATE, "en_US.UTF-8");
   if (res == NULL) {
     printf("Could not set locale\n");
@@ -103,7 +103,7 @@ int main(void) {
   // wait for all threads to finish
   Group *results[NTHREADS];
   for (size_t i = 0; i < NTHREADS; i++) {
-    const int status= pthread_join(workers[i], (void *)&results[i]);
+    const int status = pthread_join(workers[i], (void *)&results[i]);
     if (status != 0)
       err_abort(status, "pthread_join");
   }
@@ -132,7 +132,7 @@ int main(void) {
   qsort(combined->rows, combined->size, sizeof(*combined->rows), cmp);
   char buffer[16384];
   to_string(buffer, combined);
-  printf(buffer);
+  printf("%s", buffer);
   return 0;
 }
 
@@ -255,11 +255,12 @@ static inline void to_string(char *buffer, Group *row_grouping) {
   *buffer++ = '{';
   for (unsigned int i = 0; i < row_grouping->size; i++) {
     size_t n = (size_t)sprintf(
-      buffer, "%s=%.1f/%.1f/%.1f%s", row_grouping->rows[i].name, row_grouping->rows[i].min,
-           row_grouping->rows[i].sum / row_grouping->rows[i].count,
-           row_grouping->rows[i].max, i < (row_grouping->size -1) ? ", " : "");
+        buffer, "%s=%.1f/%.1f/%.1f%s", row_grouping->rows[i].name,
+        row_grouping->rows[i].min,
+        row_grouping->rows[i].sum / row_grouping->rows[i].count,
+        row_grouping->rows[i].max, i < (row_grouping->size - 1) ? ", " : "");
 
-      buffer += n;
+    buffer += n;
   }
   *buffer++ = '}';
   *buffer++ = '\n';
