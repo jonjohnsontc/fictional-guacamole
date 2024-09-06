@@ -17,3 +17,8 @@ I don't want to spend too many words on this post. The BRC has long finished for
 - avoid concurrency, especially if you don't need it
 - the compiler is very smart
 - mmapping a file makes access incredibly fast
+
+## Post
+
+I've spent some time over the past few months learning C. I would like to gain a better understanding of the language that is still used in plenty of commercial and open source software, along with the virtual machines that back much of the other software we use.
+
