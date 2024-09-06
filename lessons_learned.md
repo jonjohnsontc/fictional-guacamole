@@ -20,5 +20,6 @@ I don't want to spend too many words on this post. The BRC has long finished for
 
 ## Post
 
-I've spent some time over the past few months learning C. I would like to gain a better understanding of the language that is still used in plenty of commercial and open source software, along with the virtual machines that back much of the other software we use.
+I've spent some time over the past few months learning C. Now, I know somebody doesn't just learn to program in C in just a few months, but I'm hoping it can remain something that I can come back to the well and continue to use as the situation demands it like Python, SQL, etc.
 
+Without some kind of software produced, it's hard to retain or build on any kind of knowledge. Since I spent much of my time at work building and validating data pipelines, the recent billion row challenge seemed like a fun target to build towards. It would give me an opportunity to take advantage of the blazingly fast close to the metal :tm: speed that C can give us.
