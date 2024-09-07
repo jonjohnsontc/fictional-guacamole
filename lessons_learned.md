@@ -29,3 +29,5 @@ I've spent some time over the past few months learning C. Now, I know somebody d
 All that said, if I'm not trying to build some software, it's going to be hard to retain or build on any kind of knowledge about the language. Since I spent much of my time at work building and validating data pipelines, the recent billion row challenge seemed like a fun target to build towards. I set my goal for creating a submission that would allow me to explore different ways of optimizing an initial "naive" pipeline, not necessarily a submission that was competitive with other C implementations out there.
 
 My submission can be found at <https://github.com/jonjohnsontc/fictional-guacamole>
+
+### Observations
